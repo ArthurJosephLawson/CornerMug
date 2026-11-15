@@ -5,20 +5,20 @@ import type { EntryRequest } from "@/types/entry";
  * tests can run without network access.
  *
  * Gmail rules enforced here (format-level only):
- * - domain must be exactly gmail.com (case-insensitive)
+ * - domain must be exactly gmail.com (case-insensitive; normalized to lowercase)
  * - local part: letters/digits/single dots, starts/ends alphanumeric,
  *   no consecutive dots
  * - plus aliases are rejected so session identity stays stable
  */
-const GMAIL_FORMAT = /^[a-z0-9](?:[a-z0-9]|\.(?!\.))*[a-z0-9]@gmail\.com$/i;
+const GMAIL_FORMAT = /^[a-z0-9](?:[a-z0-9]|\.(?!\.))*[a-z0-9]@gmail\.com$/;
 
 export function isValidGmailFormat(gmail: string): boolean {
-  if (!gmail.includes("@")) return false;
-  const [local, domain] = gmail.split("@");
+  const normalized = gmail.toLowerCase();
+  if (!normalized.includes("@")) return false;
+  const [local, domain] = normalized.split("@");
   if (!local || !domain) return false;
-  if (gmail.split("@").length !== 2) return false;
-  if (gmail !== gmail.toLowerCase()) return false;
-  return GMAIL_FORMAT.test(gmail);
+  if (normalized.split("@").length !== 2) return false;
+  return GMAIL_FORMAT.test(normalized);
 }
 
 export function isValidUsername(username: string): boolean {
