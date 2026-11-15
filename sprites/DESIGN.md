@@ -41,32 +41,30 @@ UI ink      #3A2E24    UI paper    #FAF3E3
 Pick your own — the constraint is: one wood family, one floor family, 2–3
 accents, 1 dark ink. ~16 colors total.
 
-## 3. `sprites/png/characters/` — 32x48 sheets (sources in `sprites/ase/characters/`)
+## 3. `sprites/png/characters/` — 32x48 frames (sources in `sprites/ase/characters/`)
 
-Every character (player, NPCs later) uses the same sheet layout so one loader
-handles all of them:
+Every character uses **two facing files** — left and right — decided by the
+creator. No up/down art exists; the engine keeps the last horizontal facing
+while moving up/down. Sprites never move mouths while talking.
+
+Sheet layout after conversion (one PNG per character, **128 x 96**):
 
 ```
-Sheet: 128 x 192 px  (4 columns x 4 rows of 32x48 frames)
-
         col1        col2        col3        col4
-row1    down-idle1  down-idle2  down-walk1  down-walk2
-row2    up-idle1    up-idle2    up-walk1    up-walk2
-row3    left-idle1  left-idle2  left-walk1  left-walk2
-row4    right-idle1 right-idle2 right-walk1 right-walk2
+row1    left-idle1  left-idle2  left-walk1  left-walk2      (from <name>_facingleft.ase)
+row2    right-idle1 right-idle2 right-walk1 right-walk2     (from <name>_facingright.ase)
 ```
 
+- Each facing `.ase` holds 4 frames of 32x48 in order: idle1, idle2, walk1, walk2
 - Idle frames = tiny breathing/bob (1px body shift is enough)
 - Walk frames = contact poses (feet apart), 2-frame shuffle reads fine top-down
 - Feet touch the **bottom edge** of the 32x48 frame (feet = tile anchor)
-- Mirror trick allowed: left frames can be flipped rights, but if you do,
-  still export both so the sheet stays uniform
-- You decide the cast and its size — register each sheet in `ASSETS.md`
+- You decide the cast and its size — register each character in `ASSETS.md`
 
 Loader reference (Phase 2 wires this):
 ```js
-this.load.spritesheet(key, `/sprites/characters/${file}.png`, { frameWidth: 32, frameHeight: 48 });
-// anims: idle = frames 0-1 @ 2fps loop, walk = frames 2-3 @ 6fps loop, per direction row
+this.load.spritesheet(key, `/sprites/png/characters/${file}.png`, { frameWidth: 32, frameHeight: 48 });
+// anims: idle = frames 0-1 @ 2fps loop, walk = frames 2-3 @ 6fps loop; row 0 = left, row 1 = right
 ```
 
 ## 4. `sprites/png/tilesets/` — 32x32 tiles (sources in `sprites/ase/tilesets/`)
