@@ -1,0 +1,7 @@
+/* Reset only — Corner Mug UI is designed by the creator. Do not add styling here. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
