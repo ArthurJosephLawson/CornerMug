@@ -41,7 +41,7 @@ UI ink      #3A2E24    UI paper    #FAF3E3
 Pick your own — the constraint is: one wood family, one floor family, 2–3
 accents, 1 dark ink. ~16 colors total.
 
-## 3. `sprites/characters/` — 32x48 sheets
+## 3. `sprites/png/characters/` — 32x48 sheets (sources in `sprites/ase/characters/`)
 
 Every character (player, NPCs later) uses the same sheet layout so one loader
 handles all of them:
@@ -69,7 +69,7 @@ this.load.spritesheet(key, `/sprites/characters/${file}.png`, { frameWidth: 32, 
 // anims: idle = frames 0-1 @ 2fps loop, walk = frames 2-3 @ 6fps loop, per direction row
 ```
 
-## 4. `sprites/tilesets/` — 32x32 tiles
+## 4. `sprites/png/tilesets/` — 32x32 tiles (sources in `sprites/ase/tilesets/`)
 
 One tileset image, grid-aligned, no gaps/margins (Tiled spacing 0):
 
@@ -90,7 +90,7 @@ call. Register each tileset PNG in `ASSETS.md` with the tiles it contains.
 Tip: draw floors first, walls second, counter last. The cafe reads on floor +
 walls alone; furniture is dressing.
 
-## 5. `sprites/props/` — interactive + decorative items
+## 5. `sprites/png/props/` — interactive + decorative items (sources in `sprites/ase/props/`)
 
 Free-size, but keep sizes tile-snapped (multiples of 16, anchored bottom-center
 so they sit on floor tiles). Draw each on transparent background.
@@ -134,7 +134,7 @@ Object rules on `interactions`:
 - `spawn` = one point object, default entry position
 - Table zones = rectangles; players seated at chairs inside a zone share table chat
 
-## 7. `sprites/ui/` — interface assets
+## 7. `sprites/png/ui/` — interface assets (sources in `sprites/ase/ui/`)
 
 Bare HTML now, styled by you later. You decide every asset and its count.
 Draw at 2x for crispness (retina) — engine draws at 1x.

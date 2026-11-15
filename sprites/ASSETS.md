@@ -24,19 +24,19 @@ it's ready.
 | UI          | draw at 2x, 9-slice assets keep 8px corners |
 | Audio       | `.ogg` or `.mp3`, each < 300 KB, loops seamless |
 
-## 1. Characters — `sprites/characters/`
+## 1. Characters — sources `sprites/ase/characters/`, exports `sprites/png/characters/`
 
 | Filename | Size | What it is | Phase |
 |----------|------|------------|-------|
 | _(yours)_ | | | |
 
-## 2. Tilesets — `sprites/tilesets/`
+## 2. Tilesets — sources `sprites/ase/tilesets/`, exports `sprites/png/tilesets/`
 
 | Filename | Tiles included | Phase |
 |----------|----------------|-------|
 | _(yours)_ | | |
 
-## 3. Props — `sprites/props/`
+## 3. Props — sources `sprites/ase/props/`, exports `sprites/png/props/`
 
 | Filename | Size | What it is | Phase |
 |----------|------|------------|-------|
@@ -48,7 +48,7 @@ it's ready.
 |----------|-----------|-------|
 | _(yours)_ | | |
 
-## 5. UI — `sprites/ui/`
+## 5. UI — sources `sprites/ase/ui/`, exports `sprites/png/ui/`
 
 | Filename | Draw size | What it is | Phase |
 |----------|-----------|------------|-------|
