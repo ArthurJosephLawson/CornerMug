@@ -110,32 +110,33 @@ Register each prop in `ASSETS.md`. Interactive props (chairs, tables, counter,
 games) get their behavior from `interactions` objects in the Tiled map — name
 them whatever you like and tell me the mapping, or use the defaults above.
 
-## 6. `sprites/maps/` — Tiled setup
+## 6. `sprites/maps/` — interiors (full-canvas backgrounds)
 
-Creator decides every map. Confirmed plan: **3 cafe interiors**, no single
-giant cafe map. Suggested size per interior (change freely): 40 x 30 tiles.
+Creator decision: **full-canvas interiors** — each interior is one big
+Aseprite drawing, props are separate sprites placed on top later.
 
-Map settings in Tiled (map → new):
-- Orientation: **Orthogonal**, tile size **32 x 32**
-- Export: **JSON**, one file per interior (e.g. `cafe-interior-1.json`)
+- Source: `sprites/ase/interiors/<name>.ase` — canvas **1280 x 960 px**
+  (40 x 30 tiles of 32x32; 3 interiors confirmed)
+- Converted export: `sprites/png/interiors/<name>.png` (engine background)
+- Per-interior map file: `sprites/maps/<name>.json` — a **Tiled JSON with no
+  tileset**, object layers only:
 
-Layers (exact names — the loader keys on these):
+| Layer (order)  | Type   | Contents |
+|----------------|--------|----------|
+| `collision`    | object | Solid rectangles (walls, furniture blocks) — engine blocks movement |
+| `interactions` | object | All interactive placements, below |
 
-| Layer (order)      | Type      | Contents |
-|--------------------|-----------|----------|
-| `floor`            | tile      | Floors, rugs |
-| `walls`            | tile      | Walls, windows, door |
-| `props`            | tile      | Static furniture |
-| `collision`        | tile      | Invisible tiles marking solid cells |
-| `interactions`     | object    | Object layer: seats, tables, cashier, helper NPC, spawn |
+Objects on `interactions` (name = what the engine does):
+- `spawn` — point, player entry position
+- `chair-N` — point or rect per seat; click-to-sit target
+- `table-N` — rectangle; players seated inside share table chat
+- `bar` — rectangle; cashier click zone
+- `npc` — point + custom property `dialog: how-to-play` (helper employee)
+- `prop-<name>` — point: where a prop sprite sits (engine loads the prop PNG
+  from `sprites/png/props/<name>.png` at that position, bottom-center anchored)
 
-Object rules on `interactions`:
-- Seating = object type `chair`, one per seat
-- `spawn` = one point object per map, default entry position
-- Table zones = rectangles; players seated inside share table chat
-- Cashier table = object type `bar` (click zone)
-- Helper NPC = object type `npc`, custom property `dialog: how-to-play` —
-  the engine opens the how-to-play panel on interaction
+Prop positions can be given either by dragging objects in Tiled or by listing
+x/y coordinates in `ASSETS.md` — both end up in the same JSON.
 
 ## 7. `sprites/png/ui/` — interface assets (sources in `sprites/ase/ui/`)
 

@@ -22,10 +22,10 @@ Nothing loads in the game until you say it's ready.
 
 | Category    | Fixed format |
 |-------------|--------------|
-| Characters  | 32x48 frames, sheet 4 cols x 4 rows (idle1, idle2, walk1, walk2 × down/up/left/right) |
-| Tilesets    | 32x32 grid, one PNG per set, no gaps |
-| Props       | free-size, tile-snapped (multiples of 16), transparent bg, anchor bottom-center |
-| Maps        | Tiled orthogonal 32x32, JSON export, layers `floor`/`walls`/`props`/`collision`/`interactions` |
+| Characters  | 32x48 frames, 4 frames per facing file (idle1, idle2, walk1, walk2); engine sheet 128x96 (row left, row right) |
+| Interiors   | full canvas 1280x960 px (40x30 tiles), one .ase per interior |
+| Props       | free-size, tile-snapped (multiples of 16, max 48x64), transparent bg, anchor bottom-center |
+| Maps        | Tiled JSON per interior, object layers only: `collision` (rects) + `interactions` (spawn/chair/table/bar/npc/prop) |
 | UI          | draw at 2x, 9-slice assets keep 8px corners |
 | Audio       | `.ogg` or `.mp3`, each < 300 KB, loops seamless |
 
@@ -35,17 +35,19 @@ Nothing loads in the game until you say it's ready.
 |----------|------|------------|-------|
 | _(yours)_ | | | |
 
-## 2. Tilesets — sources `sprites/ase/tilesets/`, exports `sprites/png/tilesets/`
+## 2. Interiors — sources `sprites/ase/interiors/`, exports `sprites/png/interiors/`
 
-| Filename | Tiles included | Phase |
-|----------|----------------|-------|
+Full-canvas background drawings. Canvas: **1280 x 960 px** each.
+
+| Filename | What the interior is | Phase |
+|----------|----------------------|-------|
 | _(yours)_ | | |
 
 ## 3. Props — sources `sprites/ase/props/`, exports `sprites/png/props/`
 
-| Filename | Size | What it is | Phase |
-|----------|------|------------|-------|
-| _(yours)_ | | | |
+| Filename | Size | What it is | Placed in interior | x, y (px, bottom-center) | Phase |
+|----------|------|------------|--------------------|--------------------------|-------|
+| _(yours)_ | | | | | |
 
 ## 4. Maps — `sprites/maps/`
 

@@ -9,15 +9,15 @@ here is designed and drawn manually — nothing is generated.**
 sprites/
 ├── ase/          ← YOUR sources (.ase, Aseprite) — never loaded by the engine
 │   ├── characters/
-│   ├── tilesets/
+│   ├── interiors/   (full-canvas backgrounds, 1280x960)
 │   ├── props/
 │   └── ui/
 ├── png/          ← engine-ready PNGs (converted from your .ase by the agent)
 │   ├── characters/
-│   ├── tilesets/
+│   ├── interiors/
 │   ├── props/
 │   └── ui/
-├── maps/         ← your Tiled exports (cafe_map.json etc.)
+├── maps/         ← per-interior Tiled JSON (collision + placements only)
 ├── audio/        ← ambience loops (.ogg/.mp3, < 300 KB each)
 ├── DESIGN.md     ← fixed size rules per sprite type
 └── ASSETS.md     ← the inventory you register as you draw
