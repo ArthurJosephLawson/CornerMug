@@ -61,8 +61,7 @@ row4    right-idle1 right-idle2 right-walk1 right-walk2
 - Feet touch the **bottom edge** of the 32x48 frame (feet = tile anchor)
 - Mirror trick allowed: left frames can be flipped rights, but if you do,
   still export both so the sheet stays uniform
-- Starter cast to design: player (unisex base), barista, sleeping cat,
-  2–3 ambient patrons (Phase 4, same layout)
+- You decide the cast and its size — register each sheet in `ASSETS.md`
 
 Loader reference (Phase 2 wires this):
 ```js
@@ -78,14 +77,15 @@ One tileset image, grid-aligned, no gaps/margins (Tiled spacing 0):
 cafe-tiles.png  — tile size 32x32, any sheet size multiple of 32
 ```
 
-Minimum tile list (design these first):
+Minimum requirements for Phase 2 to run (the floor, not the ceiling — you
+decide everything beyond these):
 
-- **Floor:** wood plank x2 variants, tile/checker variant, rug center + edges (rug = 3x3 set: corners, edges, center)
-- **Walls:** wall top (facing), wall face, wall top edge caps (4), baseboard
-- **Windows:** window (closed, warm light), window sill
-- **Door:** entrance door (2 frames: closed/open) — one tile wide, 2 tiles tall
-- **Counter:** bar counter face, bar counter top, corner pieces (2)
-- **Details:** floor shadow tile (soft, semi-transparent works), wall poster slot (empty tile your posters sit on)
+- at least 1 floor tile type
+- at least 1 wall tile type
+- 1 door tile (2 tiles tall)
+
+Everything else — rug sets, windows, counter pieces, detail tiles — is your
+call. Register each tileset PNG in `ASSETS.md` with the tiles it contains.
 
 Tip: draw floors first, walls second, counter last. The cafe reads on floor +
 walls alone; furniture is dressing.
@@ -95,17 +95,22 @@ walls alone; furniture is dressing.
 Free-size, but keep sizes tile-snapped (multiples of 16, anchored bottom-center
 so they sit on floor tiles). Draw each on transparent background.
 
-| Prop            | Suggested size | Notes |
-|-----------------|----------------|-------|
-| Chair (up/down/left/right variants) | 24 x 32 | Click-to-sit target; seat pos = tile center |
-| Table round     | 48 x 48        | Occupies ~1.5 tiles |
-| Table square    | 32 x 32        | |
-| Coffee mug      | 16 x 16        | Appears "on the table" after bar click |
-| Latte / tea cups| 16 x 16        | Same footprint as mug |
-| Tabletop game board (tic-tac-toe, connect 4) | 32 x 32 | Phase 4 |
-| Floor lamp      | 16 x 32        | Light glow drawn in-engine or as 32x32 halo sprite |
-| Book stack      | 16 x 16        | Study table dressing |
-| Napkin/plate    | 16 x 16        | |
+Format rules only — sizes are fixed, you decide every prop, its subject, and
+its count:
+
+| Prop type | Size |
+|-----------|------|
+| Small items (mugs, books, cards, board pieces) | 16 x 16 |
+| Chair (any facing) | 32 x 32 |
+| Square table / game boards / vinyl player / cat bed | 32 x 32 |
+| Tall props (plants, lamps) | 16 x 32, 24 x 32, 24 x 48, 32 x 48 |
+| Large furniture (round/long tables, counter pieces) | 48 x 48, 48 x 64 |
+| Halos/glows | 32 x 32 or 48 x 48, semi-transparent |
+
+Every edge a multiple of 16; never exceed 48 x 64. Anchor bottom-center.
+Register each prop in `ASSETS.md`. Interactive props (chairs, tables, counter,
+games) get their behavior from `interactions` objects in the Tiled map — name
+them whatever you like and tell me the mapping, or use the defaults above.
 
 ## 6. `sprites/maps/` — Tiled setup
 
@@ -131,21 +136,25 @@ Object rules on `interactions`:
 
 ## 7. `sprites/ui/` — interface assets
 
-Bare HTML now, styled by you later. Design these at 2x for crispness
-(retina) — engine draws at 1x:
+Bare HTML now, styled by you later. You decide every asset and its count.
+Draw at 2x for crispness (retina) — engine draws at 1x.
 
-| Asset                | Suggested size | Notes |
-|----------------------|----------------|-------|
-| Logo wordmark        | 512 x 160 (draw at 256 x 80) | "Corner Mug" + small mug mark |
-| Speech bubble        | 48 x 32 base, 9-slice | Rounded rect + tail; engine stretches to text |
-| Vibe badge — lounge  | 24 x 24        | Coffee steam icon-ish mark |
-| Vibe badge — study   | 24 x 24        | Book/clock mark |
-| Entry panel frame    | 320 x 240, 9-slice | Wraps the login form later |
-| Button               | 96 x 32, 9-slice | Normal state only to start |
-| Favicon              | 32 x 32       | Simple mug mark |
+Fixed sizes (engine draws at 1x):
 
-9-slice = export with distinct corners, engine insets 8px each side. Keep
-inner area plain.
+| Asset | Final size (draw at 2x) |
+|-------|-------------------------|
+| Favicon | 32 x 32 |
+| Logo | 256 x 80 |
+| Speech bubble (9-slice base) | 48 x 32 |
+| Vibe badges | 24 x 24 |
+| Entry panel / any panel (9-slice) | 320 x 240 |
+| Buttons (9-slice) | 96 x 32 |
+| Nameplate | 96 x 24 |
+| Pomodoro ring | 64 x 64 |
+| Small icons | 24 x 24 |
+
+9-slice assets: distinct corners, plain inner area, engine insets 8px per side.
+Register each UI asset in `ASSETS.md`.
 
 ## 8. Asset checklist (draw in this order)
 
