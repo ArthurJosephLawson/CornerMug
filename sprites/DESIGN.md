@@ -112,10 +112,12 @@ them whatever you like and tell me the mapping, or use the defaults above.
 
 ## 6. `sprites/maps/` — Tiled setup
 
+Creator decides every map. Confirmed plan: **3 cafe interiors**, no single
+giant cafe map. Suggested size per interior (change freely): 40 x 30 tiles.
+
 Map settings in Tiled (map → new):
 - Orientation: **Orthogonal**, tile size **32 x 32**
-- Size: start with **40 x 30 tiles** (1280 x 960 world) — one cozy room, no scrolling mazes
-- Export: **JSON** as `sprites/maps/cafe_map.json`
+- Export: **JSON**, one file per interior (e.g. `cafe-interior-1.json`)
 
 Layers (exact names — the loader keys on these):
 
@@ -123,14 +125,17 @@ Layers (exact names — the loader keys on these):
 |--------------------|-----------|----------|
 | `floor`            | tile      | Floors, rugs |
 | `walls`            | tile      | Walls, windows, door |
-| `props`            | tile      | Counter, static furniture |
+| `props`            | tile      | Static furniture |
 | `collision`        | tile      | Invisible tiles marking solid cells |
-| `interactions`     | object    | Object layer: `chair` (all seats), `table` (zones), `bar` (counter click zone), `spawn` (single point) |
+| `interactions`     | object    | Object layer: seats, tables, cashier, helper NPC, spawn |
 
 Object rules on `interactions`:
-- Every chair = object type `chair`, 1 per seat
-- `spawn` = one point object, default entry position
-- Table zones = rectangles; players seated at chairs inside a zone share table chat
+- Seating = object type `chair`, one per seat
+- `spawn` = one point object per map, default entry position
+- Table zones = rectangles; players seated inside share table chat
+- Cashier table = object type `bar` (click zone)
+- Helper NPC = object type `npc`, custom property `dialog: how-to-play` —
+  the engine opens the how-to-play panel on interaction
 
 ## 7. `sprites/png/ui/` — interface assets (sources in `sprites/ase/ui/`)
 
@@ -154,15 +159,22 @@ Fixed sizes (engine draws at 1x):
 9-slice assets: distinct corners, plain inner area, engine insets 8px per side.
 Register each UI asset in `ASSETS.md`.
 
-## 8. Asset checklist (draw in this order)
+## 8. Confirmed creator scope (asset plan)
 
-1. `cafe-tiles.png` floor + walls
-2. `cafe_map.json` rough draft in Tiled (floor + walls + collision)
-3. Character base sheet (`player.png`)
-4. Chairs + tables (`props/`)
-5. Bar counter + mugs
-6. Speech bubble + logo (`ui/`)
-7. Polish pass: rug, windows, lamp glow, patrons
+Declared by the creator — the full drawing list:
 
-Phase 2 needs: tiles 1, map 2, player 3, chairs 4.
+- **Maps:** 3 cafe interiors (Tiled JSON each)
+- **Character props:** desks, laptops
+- **Cashier:** cashier table
+- **NPC:** one employee NPC for help regarding how to play
+  (static sprite — no talk animation needed; chat sprites never move mouths)
+
+Draw order suggestion within that scope:
+1. Tileset PNG (floors + walls — every interior reuses it)
+2. One interior map draft in Tiled with collision
+3. Character facing frames (4 per facing)
+4. Desks + laptops + cashier table (props)
+5. Employee NPC (same 2-facing character layout)
+
+Phase 2 needs: tileset, one interior map, player facing frames, desks/chairs.
 Everything else can arrive while the game already runs.

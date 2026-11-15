@@ -5,13 +5,18 @@ is the record of that inventory. The engine imposes **format rules only**
 (sizes, sheet layouts, layer names) — those live in `sprites/DESIGN.md` and do
 not change without a loader update.
 
-Fill the tables as you design. Until then, nothing here is committed to.
+## Confirmed scope (creator decisions)
+
+- **Maps:** 3 cafe interiors only — no larger world maps
+- **Props:** character desks, laptops, cashier table
+- **NPC:** one employee NPC whose job is help regarding how to play
+- **Chat sprites:** no mouth movement (talking never animates the mouth)
+- **Characters:** 2 facing files each (`_facingleft`, `_facingright`), no up/down art
 
 ## How to register an asset
 
 Add one row per file you make: filename, size, what it is, phase (2/3/4).
-Delete any pre-filled example rows. Nothing loads in the game until you say
-it's ready.
+Nothing loads in the game until you say it's ready.
 
 ## Format rules (fixed — from DESIGN.md)
 
