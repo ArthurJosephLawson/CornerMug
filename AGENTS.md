@@ -1,35 +1,61 @@
 # AGENTS.md — Corner Mug
 
 ## Project Overview
-Corner Mug is a cozy, browser-based 2D top-down pixel-art virtual cafe where people around the world drop in to hang out, chat, and study together.
-- Full product vision and roadmap: `@idea.md`
-- Core rule: NO video or voice streaming. Pure lightweight text chat, proximity table seating, ambient audio, and 2D avatar movement.
+Corner Mug is a cozy, browser-based 2D pixel-art virtual cafe where people drop in to hang out, chat, and study together.
+- Full product vision and roadmap: `blueprint.md`
+- Core rule: NO video or voice streaming. Text chat, proximity table seating, ambient audio, 2D avatar movement only.
 
-## Strict Creative & Scope Boundaries (CRITICAL)
-1. **NO Art or Logo Generation:** Do NOT generate SVGs, pixel art PNGs, logos, icons, or canvas-drawn character art. The project creator is designing all sprites, maps, and logos manually.
-2. **NO Premature UI Styling:** Do NOT design custom themes, decorative layouts, or polished CSS styling. Keep UI components bare-bones, unstyled/minimal HTML shells so the creator can design and specify the UI later.
-3. **Custom Art Folder (`sprites/`):** Organize all art and map directories cleanly inside a root `sprites/` folder (`sprites/characters/`, `sprites/tilesets/`, `sprites/props/`, `sprites/maps/`, `sprites/ui/`) and configure the build/asset loader so Phaser 3 loads directly from this organized structure.
-4. **Foundation First:** When initializing the project, ONLY scaffold the organized folder architecture, configuration files, entry validation logic, and foundational stub files. Do NOT build out full game mechanics until explicitly instructed.
+## Division of Labor (STRICT)
 
-## Entry & Identity Rules (Zero-Account System)
-- **NO Login, NO Sign-Up, NO Passwords, NO Auth Providers.**
-- Users enter the cafe via a lightweight two-field entry gate:
-  1. **Gmail Address:** Must be validated on both client and server (Next.js API route) to confirm it is a legitimate, properly formatted `@gmail.com` address with active Google MX records (`dns.resolveMx('gmail.com')` / format checks, blocking disposable domains or fake formats) before issuing an instant session token.
-  2. **Username:** Chosen display name for the session (3–16 alphanumeric/underscore characters).
-- Store the verified session lightly in `sessionStorage` / Supabase Presence metadata so users can hop right into a cafe room.
+### Creator's Role (Artist)
+- Hand-draws 100% of visual assets in **LibreSprite**. Sources live in `sprites/ase/` — the engineer never touches, converts, or deletes these.
+- Interiors are drawn at **320x180 px** (or 160x90 px) — small canvases suit the art style — then exported with **Nearest-Neighbor scaling (200% or 400%)** to **640x360 px** into `sprites/png/`. Each interior also gets a **160x90 px** `_thumb.png` for room previews.
+- Characters and props are exported as matching **2x or 4x scaled PNGs**.
+- **Never uses Tiled and never makes sprite sheets.** Plain single-image exports only.
 
-## Tech Stack & $0 Production Constraints
-- **Framework:** Next.js (App Router) + TypeScript (deployed free on Vercel).
-- **Game Engine:** Phaser 3 (HTML5 Canvas, crisp pixel rendering: `pixelArt: true`, `roundPixels: true`).
-- **Multiplayer & Backend:** Supabase Free Tier (Supabase Realtime Broadcast + Presence for avatar `(x, y)` sync, seating state, and table-scoped chat).
-- **Audio:** Local lightweight `.ogg`/`.mp3` loops (< 300KB each) — no external streaming APIs.
+### Engineer's Role (OpenCode)
+- All Next.js App Router code, TypeScript types, Phaser 3 engine logic.
+- `?edit=true` visual map tooling (prop/seat/collider placement + room JSON export).
+- Supabase Realtime multiplayer: presence, broadcast movement, table-scoped chat, shared Pomodoro sync.
+- Vercel deployment readiness.
+- Room layout JSON lives in `src/config/rooms/` (replaces Tiled entirely).
 
-## Coding Conventions
-- Keep Phaser game logic cleanly separated inside `src/game/` (`scenes/`, `entities/`, `network/`, `config/`) and bare-bones React HUD shells inside `src/components/`.
-- Use TypeScript strict mode; avoid `any`.
-- Throttle avatar movement broadcasts to ~10–15 updates/sec so Supabase free-tier quotas stay near zero.
+## Strict Asset Rules (CRITICAL)
+1. **The engineer MUST NEVER generate pixel art, SVG illustrations, icons, logos, or any custom art asset.**
+2. **Graceful fallback rule:** whenever an expected PNG in `sprites/png/` is missing (creator still drawing it), the Phaser loader falls back to **clean, labeled colored rectangles** at the asset's world size, so the game runs and tests cleanly at every stage.
+3. UI stays bare-bones unstyled HTML shells — the creator designs all UI later.
+4. No login, no passwords, no OAuth — Gmail + Username gate only (see `src/app/api/verify-entry`).
 
-## Build & Verification Commands
+## Asset Structure
+```
+sprites/
+├── ase/        ← creator's raw LibreSprite sources (DO NOT touch or delete)
+├── png/        ← creator's exported PNGs (FLAT): interior_1.png, interior_1_thumb.png,
+│                  male_left.png, male_right.png, transparent props, etc.
+├── audio/      ← optional cozy ambient loops (< 300 KB each)
+├── DESIGN.md   ← exact size/export rules per asset type
+├── ASSETS.md   ← creator's asset inventory record
+└── README.md   ← sprite folder workflow
+```
+- `public/sprites` is a symlink to `sprites/png/` — assets serve at `/sprites/<file>.png`.
+- Character naming: `<name>_left.png` / `<name>_right.png` (two files per character). No up/down art; up/down movement keeps last horizontal facing; horizontal texture flipping handles direction. Sprites never move mouths while chatting.
+- Exact canvas sizes and export settings: `sprites/DESIGN.md`.
+
+## Tech Stack ($0 Production)
+- **Framework:** Next.js (App Router) + TypeScript — free on Vercel.
+- **Game Engine:** Phaser 3 (`pixelArt: true`, `roundPixels: true`, world space 640x360).
+- **Multiplayer:** Supabase Realtime free tier (presence, broadcast, chat channels).
+- **Audio:** local `.ogg`/`.mp3` loops < 300 KB.
+
+## Game Structure Rules
+- World logic in `src/game/` (`scenes/`, `config/`, `fallback.ts`, `PhaserGame.ts`); React shells in `src/components/`; room JSON in `src/config/rooms/`; shared types in `src/types/`.
+- Room JSON (`interior_1..3.json`): background key, wall colliders, prop coordinates + solid flags, `table_id` snap-seats, spawn.
+- Y-sorting by sprite `y` for depth; seats snap within proximity; movement unseats.
+- TypeScript strict; no `any`.
+
+## Build & Verification
 - Install: `npm install`
-- Dev server: `npm run dev`
-- Typecheck & Build: `npm run build`
+- Dev: `npm run dev`
+- Tests: `npm test` (Vitest)
+- Typecheck: `npm run typecheck`
+- Build: `npm run build`

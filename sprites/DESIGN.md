@@ -1,33 +1,41 @@
 # Corner Mug — Design Settings (the creator's art bible)
 
-Everything visual in Corner Mug is designed by you. This doc pins the exact
-dimensions, layouts, and export settings the game engine expects, so your art
-drops straight in without rework. Change a number here → change it in the
-loader. Keep this file updated as decisions settle.
+Everything visual in Corner Mug is drawn by the creator in LibreSprite.
+This doc pins the exact canvas sizes, export scaling, and world sizes the
+Phaser engine expects. Change a number here → change it in the loader.
+`ASSETS.md` records the creator's inventory; counts stay creator-owned.
+
+**Core workflow:** draw small in LibreSprite → export Nearest-Neighbor scaled
+PNGs into `sprites/png/` (flat). The engine loads `/sprites/<file>.png` and
+displays at the WORLD sizes below (any 2x/4x export scale works — the engine
+forces display size).
 
 ---
 
-## 1. Global canvas rules
+## 1. Global rules
 
-| Setting          | Value                              | Why |
-|------------------|------------------------------------|-----|
-| Tile size        | **32 x 32 px**                     | World unit for tilesets + Tiled map |
-| Character frame  | **32 x 48 px**                     | Taller than a tile, feet on tile edge |
-| Design viewport  | **960 x 544 px** (30 x 17 tiles)   | Reference framing; camera follows the player |
-| Pixel scale      | 1:1 in-world, integer zoom only    | Never half-pixel scaling |
-| Palette size     | **16–24 colors** per asset family  | Cozy = limited palette. Reuse, don't invent |
-| Outline style    | 1px selective outline (dark, not black) | Reads at small size |
-| Rendering mode   | Nearest neighbor, `image-rendering: pixelated` | Already enforced by Phaser `pixelArt: true` |
+| Setting            | Value                                   | Why |
+|--------------------|-----------------------------------------|-----|
+| World space        | **640 x 360 px**                        | Room fills the viewport; camera is static |
+| Interior draw size | **320 x 180 px** (or 160 x 90 px)       | Small canvas suits the art style |
+| Interior export    | NN scale 200% (or 400%) → **640 x 360** | Exact world size |
+| Room preview thumb | **160 x 90 px** (`_thumb.png`)          | Room picker previews |
+| Character world size | **32 x 48 px** (logical 16 x 24)      | 1 tile wide, 1.5 tiles tall at world scale |
+| Character export   | NN 200% → 32 x 48, or 400% → 64 x 96    | Engine forces 32 x 48 display |
+| Prop world size    | multiples of 16, max 96 x 128           | Registered per-prop in room JSON |
+| Prop export        | NN 200%/400% of logical size            | Engine forces registered world size |
+| Pixel scale        | nearest-neighbor only, integer zoom     | Phaser `pixelArt: true` + `roundPixels: true` |
+| Palette size       | 16–24 colors per asset family           | Cozy = limited palette |
+| Outline style      | 1px selective outline (dark, not black) | Reads at small size |
 
-Export settings for every PNG:
-- PNG-24 with transparency (no background fill)
-- No antialiasing / no feathering on pixel edges
-- Filenames: lowercase, hyphens (`cafe-floor-wood.png`)
-- Never upscale in an image editor — draw at final size
+Export settings for every PNG: PNG-24 with transparency (interiors may be
+opaque), no antialiasing, nearest-neighbor scaling, lowercase-hyphen-free
+underscore naming (`interior_1.png`, `male_left.png`). Never upscale in a
+non-NN resampler.
+
+**No Tiled. No sprite sheets. Single-image exports only.**
 
 ## 2. Suggested core palette (starter set — yours to replace)
-
-Cozy cafe, warm and low-saturation:
 
 ```
 Wood dark   #3B2B20    Wood mid    #5C4033    Wood light  #8B5E3C
@@ -38,144 +46,67 @@ Espresso    #2A1E17    Steam/milk  #F5EFE6
 UI ink      #3A2E24    UI paper    #FAF3E3
 ```
 
-Pick your own — the constraint is: one wood family, one floor family, 2–3
-accents, 1 dark ink. ~16 colors total.
+## 3. Characters — `sprites/png/<name>_left.png` + `<name>_right.png`
 
-## 3. `sprites/png/characters/` — 32x48 frames (sources in `sprites/ase/characters/`)
+Two files per character. Each file = **one frame, logical 16 x 24**
+(export 32 x 48 at 2x, or 64 x 96 at 4x). No sheets, no walk-cycle frames —
+the engine slides the sprite and flips textures for direction.
 
-Every character uses **two facing files** — left and right — decided by the
-creator. No up/down art exists; the engine keeps the last horizontal facing
-while moving up/down. Sprites never move mouths while talking.
+- File naming: `male_left.png`, `male_right.png`, `employee_left.png`,
+  `employee_right.png`, etc.
+- No up/down art exists. Moving up/down keeps the last horizontal facing.
+- Sprites never move mouths while chatting — static art is final.
+- Feet at the bottom edge of the frame (feet = tile anchor).
 
-Sheet layout after conversion (one PNG per character, **128 x 96**):
+Engine behavior: `<name>_left.png` for leftward facing, `<name>_right.png`
+for rightward, horizontal flip when needed. World display always 32 x 48.
 
-```
-        col1        col2        col3        col4
-row1    left-idle1  left-idle2  left-walk1  left-walk2      (from <name>_facingleft.ase)
-row2    right-idle1 right-idle2 right-walk1 right-walk2     (from <name>_facingright.ase)
-```
+## 4. Interiors — `sprites/png/interior_N.png` + `interior_N_thumb.png`
 
-- Each facing `.ase` holds 4 frames of 32x48 in order: idle1, idle2, walk1, walk2
-- Idle frames = tiny breathing/bob (1px body shift is enough)
-- Walk frames = contact poses (feet apart), 2-frame shuffle reads fine top-down
-- Feet touch the **bottom edge** of the 32x48 frame (feet = tile anchor)
-- You decide the cast and its size — register each character in `ASSETS.md`
+One full-canvas background per room. Draw at 320 x 180 (or 160 x 90), export
+NN-scaled to **640 x 360** (fills the world exactly). Walls are painted into
+the background; solid zones are marked later with the `?edit=true` tool, not
+drawn.
 
-Loader reference (Phase 2 wires this):
-```js
-this.load.spritesheet(key, `/sprites/png/characters/${file}.png`, { frameWidth: 32, frameHeight: 48 });
-// anims: idle = frames 0-1 @ 2fps loop, walk = frames 2-3 @ 6fps loop; row 0 = left, row 1 = right
-```
+Three interiors: `interior_1`, `interior_2`, `interior_3` + matching
+`interior_1_thumb.png` (160 x 90) each.
 
-## 4. `sprites/png/tilesets/` — 32x32 tiles (sources in `sprites/ase/tilesets/`)
+## 5. Props — `sprites/png/<prop_key>.png`
 
-One tileset image, grid-aligned, no gaps/margins (Tiled spacing 0):
+Transparent background, logical size a multiple of 8, world size a multiple
+of 16 (max 96 x 128), anchored bottom-center. Export 2x/4x.
 
-```
-cafe-tiles.png  — tile size 32x32, any sheet size multiple of 32
-```
+Confirmed creator scope: character desks, laptops, cashier table, chairs —
+plus anything else the creator adds. The prop key = PNG filename (without
+extension) = the key used in room JSON and the `?edit=true` placer.
 
-Minimum requirements for Phase 2 to run (the floor, not the ceiling — you
-decide everything beyond these):
+## 6. Room JSON — `src/config/rooms/interior_N.json`
 
-- at least 1 floor tile type
-- at least 1 wall tile type
-- 1 door tile (2 tiles tall)
+Replaces Tiled entirely. Object fields (world coords, bottom-center anchors):
 
-Everything else — rug sets, windows, counter pieces, detail tiles — is your
-call. Register each tileset PNG in `ASSETS.md` with the tiles it contains.
+- `backgroundKey`: `"interior_1"`
+- `backgroundSize`: `{ "width": 640, "height": 360 }`
+- `spawn`: `{ "x": 320, "y": 180 }` (entry point)
+- `colliders`: `[{ "x", "y", "width", "height" }]` — wall/solid rects (top-left anchored)
+- `props`: `[{ "key", "x", "y", "width", "height", "solid" }]` — placed sprites
+- `snapSeats`: `[{ "id", "x", "y", "facing": "left"|"right", "tableId" }]` — seats
 
-Tip: draw floors first, walls second, counter last. The cafe reads on floor +
-walls alone; furniture is dressing.
+Placements are made visually in `?edit=true` mode and exported as JSON —
+no hand-written coordinates needed.
 
-## 5. `sprites/png/props/` — interactive + decorative items (sources in `sprites/ase/props/`)
+## 7. UI — `sprites/png/`
 
-Free-size, but keep sizes tile-snapped (multiples of 16, anchored bottom-center
-so they sit on floor tiles). Draw each on transparent background.
+Creator decides every asset. Draw at 2x. 9-slice assets keep distinct corners
+(engine insets 8px). Suggested finals: favicon 32x32, logo 256x80, speech
+bubble base 48x32, vibe badges 24x24, panels 320x240, buttons 96x32,
+nameplate 96x24, Pomodoro ring 64x64.
 
-Format rules only — sizes are fixed, you decide every prop, its subject, and
-its count:
+## 8. Audio — `sprites/audio/`
 
-| Prop type | Size |
-|-----------|------|
-| Small items (mugs, books, cards, board pieces) | 16 x 16 |
-| Chair (any facing) | 32 x 32 |
-| Square table / game boards / vinyl player / cat bed | 32 x 32 |
-| Tall props (plants, lamps) | 16 x 32, 24 x 32, 24 x 48, 32 x 48 |
-| Large furniture (round/long tables, counter pieces) | 48 x 48, 48 x 64 |
-| Halos/glows | 32 x 32 or 48 x 48, semi-transparent |
+`.ogg`/`.mp3`, each < 300 KB, seamless loops. Creator decides the set.
 
-Every edge a multiple of 16; never exceed 48 x 64. Anchor bottom-center.
-Register each prop in `ASSETS.md`. Interactive props (chairs, tables, counter,
-games) get their behavior from `interactions` objects in the Tiled map — name
-them whatever you like and tell me the mapping, or use the defaults above.
+## 9. Fallback rule (engine-enforced)
 
-## 6. `sprites/maps/` — interiors (full-canvas backgrounds)
-
-Creator decision: **full-canvas interiors** — each interior is one big
-Aseprite drawing, props are separate sprites placed on top later.
-
-- Source: `sprites/ase/interiors/<name>.ase` — canvas **1280 x 960 px**
-  (40 x 30 tiles of 32x32; 3 interiors confirmed)
-- Converted export: `sprites/png/interiors/<name>.png` (engine background)
-- Per-interior map file: `sprites/maps/<name>.json` — a **Tiled JSON with no
-  tileset**, object layers only:
-
-| Layer (order)  | Type   | Contents |
-|----------------|--------|----------|
-| `collision`    | object | Solid rectangles (walls, furniture blocks) — engine blocks movement |
-| `interactions` | object | All interactive placements, below |
-
-Objects on `interactions` (name = what the engine does):
-- `spawn` — point, player entry position
-- `chair-N` — point or rect per seat; click-to-sit target
-- `table-N` — rectangle; players seated inside share table chat
-- `bar` — rectangle; cashier click zone
-- `npc` — point + custom property `dialog: how-to-play` (helper employee)
-- `prop-<name>` — point: where a prop sprite sits (engine loads the prop PNG
-  from `sprites/png/props/<name>.png` at that position, bottom-center anchored)
-
-Prop positions can be given either by dragging objects in Tiled or by listing
-x/y coordinates in `ASSETS.md` — both end up in the same JSON.
-
-## 7. `sprites/png/ui/` — interface assets (sources in `sprites/ase/ui/`)
-
-Bare HTML now, styled by you later. You decide every asset and its count.
-Draw at 2x for crispness (retina) — engine draws at 1x.
-
-Fixed sizes (engine draws at 1x):
-
-| Asset | Final size (draw at 2x) |
-|-------|-------------------------|
-| Favicon | 32 x 32 |
-| Logo | 256 x 80 |
-| Speech bubble (9-slice base) | 48 x 32 |
-| Vibe badges | 24 x 24 |
-| Entry panel / any panel (9-slice) | 320 x 240 |
-| Buttons (9-slice) | 96 x 32 |
-| Nameplate | 96 x 24 |
-| Pomodoro ring | 64 x 64 |
-| Small icons | 24 x 24 |
-
-9-slice assets: distinct corners, plain inner area, engine insets 8px per side.
-Register each UI asset in `ASSETS.md`.
-
-## 8. Confirmed creator scope (asset plan)
-
-Declared by the creator — the full drawing list:
-
-- **Maps:** 3 cafe interiors (Tiled JSON each)
-- **Character props:** desks, laptops
-- **Cashier:** cashier table
-- **NPC:** one employee NPC for help regarding how to play
-  (static sprite — no talk animation needed; chat sprites never move mouths)
-
-Draw order suggestion within that scope:
-1. Tileset PNG (floors + walls — every interior reuses it)
-2. One interior map draft in Tiled with collision
-3. Character facing frames (4 per facing)
-4. Desks + laptops + cashier table (props)
-5. Employee NPC (same 2-facing character layout)
-
-Phase 2 needs: tileset, one interior map, player facing frames, desks/chairs.
-Everything else can arrive while the game already runs.
+Any expected PNG missing from `sprites/png/` renders as a labeled colored
+rectangle at its world size. The game always runs — art arrives whenever the
+creator finishes it. The rectangle names the missing file.

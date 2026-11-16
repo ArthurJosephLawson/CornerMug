@@ -1,75 +1,60 @@
 # Corner Mug — Asset Inventory (YOU decide the counts)
 
-**Rule:** the creator decides every asset, its subject, and its count. This file
-is the record of that inventory. The engine imposes **format rules only**
-(sizes, sheet layouts, layer names) — those live in `sprites/DESIGN.md` and do
-not change without a loader update.
+**Rule:** the creator decides every asset, its subject, and its count. This
+file is the record of that inventory. The engine imposes format rules only
+(sizes, export scaling) — see `sprites/DESIGN.md`.
 
 ## Confirmed scope (creator decisions)
 
-- **Maps:** 3 cafe interiors only — no larger world maps
-- **Props:** character desks, laptops, cashier table
-- **NPC:** one employee NPC whose job is help regarding how to play
-- **Chat sprites:** no mouth movement (talking never animates the mouth)
-- **Characters:** 2 facing files each (`_facingleft`, `_facingright`), no up/down art
+- **3 cafe interiors** — full-canvas backgrounds, drawn 320x180 (or 160x90),
+  exported NN to 640x360, flat into `sprites/png/`
+- **Characters:** 2 files each (`<name>_left.png`, `<name>_right.png`), no
+  up/down art, no mouth animation
+- **Props:** character desks, laptops, cashier table, chairs + creator's picks
+- **1 employee NPC** for help regarding how to play
+- **No Tiled, no sprite sheets** — placements made in `?edit=true` mode
 
-## How to register an asset
+## Finished assets
 
-Add one row per file you make: filename, size, what it is, phase (2/3/4).
-Nothing loads in the game until you say it's ready.
+Register one row per exported PNG in `sprites/png/`.
 
-## Format rules (fixed — from DESIGN.md)
+### Interiors
 
-| Category    | Fixed format |
-|-------------|--------------|
-| Characters  | 32x48 frames, 4 frames per facing file (idle1, idle2, walk1, walk2); engine sheet 128x96 (row left, row right) |
-| Interiors   | full canvas 1280x960 px (40x30 tiles), one .ase per interior |
-| Props       | free-size, tile-snapped (multiples of 16, max 48x64), transparent bg, anchor bottom-center |
-| Maps        | Tiled JSON per interior, object layers only: `collision` (rects) + `interactions` (spawn/chair/table/bar/npc/prop) |
-| UI          | draw at 2x, 9-slice assets keep 8px corners |
-| Audio       | `.ogg` or `.mp3`, each < 300 KB, loops seamless |
-
-## 1. Characters — sources `sprites/ase/characters/`, exports `sprites/png/characters/`
-
-| Filename | Size | What it is | Phase |
-|----------|------|------------|-------|
+| Filename | Draw size | Export scale | Done |
+|----------|-----------|--------------|------|
 | _(yours)_ | | | |
 
-## 2. Interiors — sources `sprites/ase/interiors/`, exports `sprites/png/interiors/`
+### Characters
 
-Full-canvas background drawings. Canvas: **1280 x 960 px** each.
-
-| Filename | What the interior is | Phase |
-|----------|----------------------|-------|
-| _(yours)_ | | |
-
-## 3. Props — sources `sprites/ase/props/`, exports `sprites/png/props/`
-
-| Filename | Size | What it is | Placed in interior | x, y (px, bottom-center) | Phase |
-|----------|------|------------|--------------------|--------------------------|-------|
-| _(yours)_ | | | | | |
-
-## 4. Maps — `sprites/maps/`
-
-| Filename | Tile dims | Phase |
-|----------|-----------|-------|
-| _(yours)_ | | |
-
-## 5. UI — sources `sprites/ase/ui/`, exports `sprites/png/ui/`
-
-| Filename | Draw size | What it is | Phase |
-|----------|-----------|------------|-------|
+| Filename | What it is | Export size | Done |
+|----------|------------|-------------|------|
 | _(yours)_ | | | |
 
-## 6. Audio — `sprites/audio/`
+### Props
 
-| Filename | Length | Type | Phase |
-|----------|--------|------|-------|
+| Filename | What it is | Export size | Solid? | Done |
+|----------|------------|-------------|--------|------|
+| _(yours)_ | | | | |
+
+### UI / other
+
+| Filename | What it is | Export size | Done |
+|----------|------------|-------------|------|
 | _(yours)_ | | | |
+
+### Audio — `sprites/audio/`
+
+| Filename | Length | Type | Done |
+|----------|--------|------|------|
+| _(yours)_ | | | |
+
+## Room layouts
+
+Placements (props, seats, colliders, spawn) are made visually in the game at
+`/cafe/play?room=interior_1&edit=true` — drag, then "Copy room JSON", then
+paste into `src/config/rooms/interior_N.json`. No coordinate tables needed.
 
 ## Handoff signal
 
-When your art is in place, tell me the inventory is ready (or just say "start
-building"). I will then: scan `sprites/`, wire the Phaser loader to exactly the
-files present, and build Phase 2 (map + movement + chair click) against your
-assets — no invented art, no invented counts.
+Place PNGs in `sprites/png/`, register above, and the game picks them up on
+next load. Missing files just show labeled colored rectangles.

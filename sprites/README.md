@@ -1,56 +1,45 @@
-# Corner Mug — Custom Sprites Directory
+# Corner Mug — Sprites Folder Workflow
 
-All art in this project is hand-crafted by the project creator. **Every file
-here is designed and drawn manually — nothing is generated.**
+All art is hand-drawn by the creator in LibreSprite. **Nothing is generated.**
+Sources are never touched by the engineer.
 
-## Two-track folder structure
+## Folder layout
 
 ```
 sprites/
-├── ase/          ← YOUR sources (.ase, Aseprite) — never loaded by the engine
-│   ├── characters/
-│   ├── interiors/   (full-canvas backgrounds, 1280x960)
-│   ├── props/
-│   └── ui/
-├── png/          ← engine-ready PNGs (converted from your .ase by the agent)
-│   ├── characters/
-│   ├── interiors/
-│   ├── props/
-│   └── ui/
-├── maps/         ← per-interior Tiled JSON (collision + placements only)
-├── audio/        ← ambience loops (.ogg/.mp3, < 300 KB each)
-├── DESIGN.md     ← fixed size rules per sprite type
-└── ASSETS.md     ← the inventory you register as you draw
+├── ase/          ← creator's raw LibreSprite sources — DO NOT touch or delete
+├── png/          ← creator's exported PNGs (FLAT — no subfolders)
+├── audio/        ← optional ambient loops
+├── DESIGN.md     ← exact size/export rules per asset type
+├── ASSETS.md     ← creator's asset inventory record
+└── README.md     ← this file
 ```
 
-Workflow: you draw in Aseprite and drop `.ase` files into `sprites/ase/<type>/`.
-When you say you're done, the agent converts every `.ase` to the engine-ready
-PNG (correct size, sheet layout per `DESIGN.md`) and places it in
-`sprites/png/<type>/`. The engine loads **only** files under `sprites/png/` and
-`sprites/maps/` — nothing else touches your sources.
+## Creator workflow
 
-## Loading files from Phaser
+1. Draw in LibreSprite at the small canvas (`sprites/DESIGN.md` sizes):
+   interiors 320x180, characters 16x24, props multiples of 8.
+2. Export with **Nearest-Neighbor** scaling (200% or 400%) as PNG directly
+   into `sprites/png/` — flat, e.g.:
+   - `interior_1.png` (640x360) + `interior_1_thumb.png` (160x90)
+   - `male_left.png`, `male_right.png` (32x48 or 64x96)
+   - `desk.png`, `laptop.png`, `cashier_table.png`, ...
+3. Register each finished file in `sprites/ASSETS.md`.
+4. **No Tiled. No sprite sheets.** Room layouts are made visually in the
+   game's `?edit=true` mode (drag props/seats, export room JSON).
 
-The root `sprites/` folder is exposed at the `/sprites` URL via a symlink in
-`public/sprites`, so Phaser loads art with standard URL paths:
+## Engine workflow (engineer)
 
-```js
-this.load.spritesheet('hero', '/sprites/png/characters/default_man.png', { frameWidth: 32, frameHeight: 48 });
-this.load.image('tiles', '/sprites/png/tilesets/cafe-tiles.png');
-this.load.tilemapTiledJSON('cafe', '/sprites/maps/cafe_map.json');
-```
+- `public/sprites` is a symlink to `sprites/png/` — assets serve at
+  `/sprites/<file>.png`.
+- Phaser loads exactly the files referenced by `src/config/rooms/*.json` plus
+  the player textures. A missing PNG renders as a labeled colored rectangle
+  at its world size — the game always runs.
+- Prop/seat/spawn placements come from `?edit=true` exports saved into
+  `src/config/rooms/interior_N.json`.
 
-URL pattern: `/sprites/png/<folder>/<filename>` and `/sprites/maps/<filename>`.
+## Serving note
 
-## Aseprite notes for your sources
-
-- Character `.ase`: one file per character; frames in order
-  idle1, idle2, walk1, walk2 for each direction (down, up, left, right —
-  16 frames total), OR one `.ase` per facing — the agent assembles the
-  128 x 192 sheet at conversion either way.
-- Keep feet at the bottom edge of the 32x48 frame; no pixels outside the canvas.
-- `.ase` files are committed as-is — no export needed from you.
-
-If Vercel ever has trouble serving the symlink at deploy time, the fallback is
-a copy step (`scripts/sync-sprites.mjs` copying `sprites/` → `public/sprites/`
-before `dev`/`build`) — do not add it unless needed.
+The symlink exposes only `sprites/png/` (not `ase/`). If Vercel ever has
+trouble serving it at deploy time, the fallback is a copy step wired to
+`predev`/`prebuild` — do not add unless needed.
