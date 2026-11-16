@@ -7,6 +7,7 @@ import {
   FALLBACK_COLORS,
   type AssetSpec,
 } from "@/game/fallback";
+import { seatHasLaptop } from "@/game/playability";
 
 const MOVE_SPEED = 140;
 const SEAT_RANGE = 48;
@@ -34,6 +35,8 @@ export default class MainCafeScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private playerFacing: Facing = "right";
   private seatedSeatId: string | null = null;
+  private seatedStudy = false;
+  private activeTableId = "cafe";
 
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private seatMarkers: { seat: SnapSeat; marker: Phaser.GameObjects.Rectangle }[] = [];
@@ -103,6 +106,16 @@ export default class MainCafeScene extends Phaser.Scene {
     return JSON.stringify(this.room, null, 2);
   }
 
+  /** Table id chat/speech is scoped to: seat's tableId while seated, "cafe" while walking. */
+  getActiveTableId(): string {
+    return this.activeTableId;
+  }
+
+  /** True when seated at a desk with a laptop — study mode. */
+  getStudyMode(): boolean {
+    return this.seatedStudy;
+  }
+
   /** Add a prop at a bottom-center world position (edit mode). */
   addProp(key: string, x: number, y: number): void {
     const prop = { key, x, y, width: 32, height: 32, solid: false };
@@ -111,11 +124,12 @@ export default class MainCafeScene extends Phaser.Scene {
   }
 
   /** Show a speech bubble above the player for a few seconds. */
-  showSpeech(text: string): void {
+  showSpeech(text: string, tableId?: string): void {
     const trimmed = text.trim();
     if (trimmed === "") {
       return;
     }
+    const scope = tableId ?? this.activeTableId;
 
     if (!this.bubble) {
       const textObj = this.add.text(0, 0, trimmed, {
@@ -147,6 +161,10 @@ export default class MainCafeScene extends Phaser.Scene {
     });
     this.bubble.container.setVisible(true);
     this.bubble.container.setPosition(this.player.x, this.player.y - 36);
+
+    // Speech is scoped to the table the player is seated at; walking
+    // defaults to the global "cafe" channel.
+    this.bubble.container.setData("tableId", scope);
   }
 
   // ----- Asset specs + rendering -----
@@ -309,6 +327,8 @@ export default class MainCafeScene extends Phaser.Scene {
 
   private seatAt(seat: SnapSeat): void {
     this.seatedSeatId = seat.id;
+    this.seatedStudy = seatHasLaptop(seat, this.room.props);
+    this.activeTableId = seat.tableId;
     this.player.setVelocity(0, 0);
     this.player.setPosition(seat.x, seat.y);
     this.playerFacing = seat.facing;

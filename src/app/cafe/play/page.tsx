@@ -176,7 +176,7 @@ export default function CafePlayPage() {
         </div>
 
         <div className="side-column">
-          <ChatSidebar />
+          <ChatSidebar tableId={scene?.getActiveTableId() ?? "cafe"} />
           <PomodoroTimer />
         </div>
       </div>
