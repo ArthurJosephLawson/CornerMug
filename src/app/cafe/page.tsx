@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import GameCanvas from "@/components/GameCanvas";
 import { loadSession } from "@/lib/session";
-import { isRoomId, ROOM_IDS } from "@/lib/rooms";
+import { isRoomId, ROOM_IDS, validateRoomConfig } from "@/lib/rooms";
 import type MainCafeScene from "@/game/scenes/MainCafeScene";
 
 /**
  * Cafe play page: requires a verified entry session (sessionStorage).
  * No session → back to the entry gate. Room comes from ?room=, edit mode
- * from ?edit=true. Bare-bones HTML only.
+ * from ?edit=true. Bare-bones HTML only — the creator styles the UI later.
  */
 export default function CafePage() {
   const router = useRouter();
@@ -19,6 +19,9 @@ export default function CafePage() {
   const [speech, setSpeech] = useState("");
   const [roomId, setRoomId] = useState<string>("interior_1");
   const [edit, setEdit] = useState(false);
+  const [propKey, setPropKey] = useState("");
+  const [exportErrors, setExportErrors] = useState<string[]>([]);
+  const [exportMessage, setExportMessage] = useState("");
   const speechRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -62,6 +65,47 @@ export default function CafePage() {
     }
   }
 
+  function addProp() {
+    if (!scene || propKey.trim() === "") {
+      return;
+    }
+    scene.addProp(propKey.trim(), scene.room.spawn.x, scene.room.spawn.y);
+    setPropKey("");
+  }
+
+  function exportJson(): string {
+    if (!scene) {
+      return "";
+    }
+    const json = scene.getRoomConfigJson();
+    const errors = validateRoomConfig(JSON.parse(json));
+    setExportErrors(errors);
+    return json;
+  }
+
+  function copyJson() {
+    const json = exportJson();
+    if (json !== "") {
+      void navigator.clipboard.writeText(json);
+      setExportMessage("Copied — paste into src/config/rooms/interior_N.json");
+    }
+  }
+
+  function downloadJson() {
+    const json = exportJson();
+    if (json === "") {
+      return;
+    }
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${roomId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportMessage("Downloaded");
+  }
+
   return (
     <main>
       <div>
@@ -83,7 +127,35 @@ export default function CafePage() {
         />
         <button onClick={say}>Say</button>
       </div>
-      <p>WASD / arrows to move. Click a red seat marker within reach to sit. Move to stand up.</p>
+      {edit ? (
+        <div>
+          <h2>Edit mode</h2>
+          <div>
+            <input
+              value={propKey}
+              onChange={(e) => setPropKey(e.target.value)}
+              placeholder="prop key (e.g. desk)"
+            />
+            <button onClick={addProp}>Add prop</button>
+            <button onClick={copyJson}>Copy room JSON</button>
+            <button onClick={downloadJson}>Download room JSON</button>
+          </div>
+          {exportErrors.length > 0 ? (
+            <ul>
+              {exportErrors.map((err) => (
+                <li key={err}>{err}</li>
+              ))}
+            </ul>
+          ) : null}
+          {exportMessage !== "" ? <div>{exportMessage}</div> : null}
+          <p>Drag props / seats / the SPAWN marker to place them, then export.</p>
+        </div>
+      ) : (
+        <p>
+          WASD / arrows to move. Click a red seat marker within reach to sit. Move
+          to stand up. Press T to talk.
+        </p>
+      )}
     </main>
   );
 }

@@ -29,7 +29,7 @@ type SpeechBubble = {
 export default class MainCafeScene extends Phaser.Scene {
   readonly isEdit: boolean;
   private roomId: string;
-  private room: RoomConfig;
+  room: RoomConfig;
 
   private player!: Phaser.Physics.Arcade.Sprite;
   private playerFacing: Facing = "right";
@@ -37,6 +37,8 @@ export default class MainCafeScene extends Phaser.Scene {
 
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private seatMarkers: { seat: SnapSeat; marker: Phaser.GameObjects.Rectangle }[] = [];
+  private propEntries: { prop: RoomConfig["props"][number]; sprite: Phaser.GameObjects.Image }[] = [];
+  private spawnMarker: Phaser.GameObjects.Rectangle | null = null;
   private bubble: SpeechBubble | null = null;
   private bubbleTimer: Phaser.Time.TimerEvent | null = null;
 
@@ -216,12 +218,18 @@ export default class MainCafeScene extends Phaser.Scene {
   }
 
   private renderProp(prop: RoomConfig["props"][number]): void {
+    const index = this.propEntries.length;
     const sprite = this.add
       .image(prop.x, prop.y, this.tex(prop.key))
       .setOrigin(0.5, 1)
       .setDisplaySize(prop.width, prop.height)
       .setDepth(prop.y);
-    sprite.setData("propKey", prop.key);
+    sprite.setData("propIndex", index);
+    this.propEntries.push({ prop, sprite });
+
+    if (this.isEdit) {
+      sprite.setInteractive({ useHandCursor: true, draggable: true, pixelPerfect: false });
+    }
 
     if (prop.solid) {
       const zone = this.add.zone(
@@ -338,8 +346,8 @@ export default class MainCafeScene extends Phaser.Scene {
       grid.lineBetween(0, y, WORLD_SIZE.width, y);
     }
 
-    // Spawn marker
-    const spawn = this.add.rectangle(
+    // Spawn marker (draggable)
+    this.spawnMarker = this.add.rectangle(
       this.room.spawn.x,
       this.room.spawn.y,
       12,
@@ -347,8 +355,10 @@ export default class MainCafeScene extends Phaser.Scene {
       FALLBACK_COLORS.npc,
       0.8,
     );
-    spawn.setStrokeStyle(1, 0x2a1e17);
-    spawn.setDepth(10_000);
+    this.spawnMarker.setStrokeStyle(1, 0x2a1e17);
+    this.spawnMarker.setDepth(10_000);
+    this.spawnMarker.setInteractive({ useHandCursor: true, draggable: true });
+    this.spawnMarker.setData("isSpawn", true);
     this.add
       .text(this.room.spawn.x, this.room.spawn.y + 10, "SPAWN", {
         fontFamily: "monospace",
@@ -357,5 +367,51 @@ export default class MainCafeScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0)
       .setDepth(10_000);
+
+    // Seats are draggable in edit mode
+    for (const { seat, marker } of this.seatMarkers) {
+      marker.setInteractive({ useHandCursor: true, draggable: true });
+      marker.setData("seatIndex", this.room.snapSeats.indexOf(seat));
+    }
+
+    this.setupDrag();
+  }
+
+  private setupDrag(): void {
+    this.input.on(
+      "drag",
+      (
+        _pointer: Phaser.Input.Pointer,
+        obj: Phaser.GameObjects.GameObject,
+        dragX: number,
+        dragY: number,
+      ) => {
+        const propIndex = obj.getData("propIndex") as number | undefined;
+        if (typeof propIndex === "number" && this.propEntries[propIndex]) {
+          const { prop, sprite } = this.propEntries[propIndex];
+          prop.x = Math.round(dragX);
+          prop.y = Math.round(dragY);
+          sprite.setPosition(prop.x, prop.y);
+          sprite.setDepth(prop.y);
+          return;
+        }
+
+        if (obj.getData("isSpawn") === true) {
+          this.room.spawn.x = Math.round(dragX);
+          this.room.spawn.y = Math.round(dragY);
+          (obj as Phaser.GameObjects.Rectangle).setPosition(dragX, dragY);
+          return;
+        }
+
+        const seatIndex = obj.getData("seatIndex") as number | undefined;
+        if (typeof seatIndex === "number" && this.room.snapSeats[seatIndex]) {
+          const seat = this.room.snapSeats[seatIndex];
+          seat.x = Math.round(dragX);
+          seat.y = Math.round(dragY);
+          (obj as Phaser.GameObjects.Rectangle).setPosition(dragX, dragY);
+          (obj as Phaser.GameObjects.Rectangle).setDepth(seat.y);
+        }
+      },
+    );
   }
 }
