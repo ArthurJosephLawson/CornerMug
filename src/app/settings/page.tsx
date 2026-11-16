@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import SiteNav from "@/components/SiteNav";
 import { useMugSettings } from "@/components/SettingsProvider";
 import { BADGE_COLORS } from "@/lib/stats";
 import { loadSession } from "@/lib/session";
+import type { SessionData } from "@/types/entry";
 
 /**
  * Menu / options page: ambient audio, display, name badge color, account info.
@@ -12,7 +14,11 @@ import { loadSession } from "@/lib/session";
  */
 export default function SettingsPage() {
   const { settings, update } = useMugSettings();
-  const session = loadSession();
+  const [session, setSession] = useState<SessionData | null>(null);
+
+  useEffect(() => {
+    setSession(loadSession());
+  }, []);
 
   return (
     <>
@@ -76,7 +82,10 @@ export default function SettingsPage() {
             ))}
           </div>
           <p style={{ marginTop: 14 }}>
-            Preview: <span className={`badge badge-preview badge-${settings.badgeColor}`}>arthur</span>
+            Preview:{" "}
+            <span className={`badge badge-preview badge-${settings.badgeColor}`}>
+              {session?.username ?? "your-name"}
+            </span>
           </p>
         </section>
 
