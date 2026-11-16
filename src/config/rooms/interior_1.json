@@ -1,0 +1,15 @@
+{
+  "id": "interior_1",
+  "name": "Cafe Interior 1",
+  "backgroundKey": "interior_1",
+  "backgroundSize": { "width": 640, "height": 360 },
+  "spawn": { "x": 320, "y": 180 },
+  "colliders": [
+    { "x": 0, "y": 0, "width": 640, "height": 16 },
+    { "x": 0, "y": 0, "width": 16, "height": 360 },
+    { "x": 624, "y": 0, "width": 16, "height": 360 },
+    { "x": 0, "y": 344, "width": 640, "height": 16 }
+  ],
+  "props": [],
+  "snapSeats": []
+}
