@@ -16,11 +16,16 @@ function memStorage(): StorageLike {
   };
 }
 
-// Fixed "today": Wed 2026-11-11 12:00 UTC
-const NOW = Date.parse("2026-11-11T12:00:00Z");
-const DAY = 24 * 60 * 60 * 1000;
-const dayAt = (daysAgo: number, hour = 10) =>
-  new Date(NOW - daysAgo * DAY + (hour - 12) * 60 * 60 * 1000).toISOString();
+// Fixed "now" so expectations hold in any timezone.
+const NOW_MS = new Date(2026, 10, 11, 12, 0, 0).getTime(); // local Wed 2026-11-11 noon
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Local N-days-ago at a fixed local hour — timezone-independent fixture. */
+function dayAt(daysAgo: number, hour = 10): string {
+  const now = new Date(NOW_MS);
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, hour, 0, 0);
+  return d.toISOString();
+}
 
 describe("recordSession + loadSessions", () => {
   let storage: StorageLike;
@@ -48,7 +53,7 @@ describe("recordSession + loadSessions", () => {
 
 describe("computeStats", () => {
   it("is NaN-free with zero sessions", () => {
-    const stats = computeStats([], NOW);
+    const stats = computeStats([], NOW_MS);
     expect(stats.streakDays).toBe(0);
     expect(stats.weeklyMinutes).toEqual([0, 0, 0, 0, 0, 0, 0]);
     expect(stats.weeklyTotal).toBe(0);
@@ -61,10 +66,19 @@ describe("computeStats", () => {
       { startedAt: dayAt(6), minutes: 25, mode: "focus" },
       { startedAt: dayAt(0), minutes: 50, mode: "focus" },
     ];
-    const stats = computeStats(sessions, NOW);
+    const stats = computeStats(sessions, NOW_MS);
     expect(stats.weeklyMinutes[0]).toBe(25);
     expect(stats.weeklyMinutes[6]).toBe(50);
     expect(stats.weeklyTotal).toBe(75);
+  });
+
+  it("counts a session started just after local midnight as today", () => {
+    const sessions: PomodoroSession[] = [
+      { startedAt: dayAt(0, 2), minutes: 25, mode: "focus" },
+    ];
+    const stats = computeStats(sessions, NOW_MS);
+    expect(stats.weeklyMinutes[6]).toBe(25);
+    expect(stats.streakDays).toBe(1);
   });
 
   it("streak counts consecutive days ending today", () => {
@@ -73,7 +87,7 @@ describe("computeStats", () => {
       { startedAt: dayAt(1), minutes: 25, mode: "focus" },
       { startedAt: dayAt(0), minutes: 25, mode: "focus" },
     ];
-    expect(computeStats(sessions, NOW).streakDays).toBe(3);
+    expect(computeStats(sessions, NOW_MS).streakDays).toBe(3);
   });
 
   it("streak breaks on a gap day", () => {
@@ -82,14 +96,14 @@ describe("computeStats", () => {
       { startedAt: dayAt(1), minutes: 25, mode: "focus" },
       { startedAt: dayAt(0), minutes: 25, mode: "focus" },
     ];
-    expect(computeStats(sessions, NOW).streakDays).toBe(2);
+    expect(computeStats(sessions, NOW_MS).streakDays).toBe(2);
   });
 
   it("streak of break-only sessions is zero", () => {
     const sessions: PomodoroSession[] = [
       { startedAt: dayAt(0), minutes: 5, mode: "break" },
     ];
-    expect(computeStats(sessions, NOW).streakDays).toBe(0);
+    expect(computeStats(sessions, NOW_MS).streakDays).toBe(0);
   });
 
   it("monthly and all-time totals", () => {
@@ -97,7 +111,7 @@ describe("computeStats", () => {
       { startedAt: dayAt(10), minutes: 25, mode: "focus" },
       { startedAt: dayAt(45), minutes: 60, mode: "focus" },
     ];
-    const stats = computeStats(sessions, NOW);
+    const stats = computeStats(sessions, NOW_MS);
     expect(stats.monthlyTotal).toBe(25);
     expect(stats.allTimeTotal).toBe(85);
   });

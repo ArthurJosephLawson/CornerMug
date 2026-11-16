@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_SETTINGS,
   loadSettings,
@@ -27,8 +27,11 @@ const SettingsContext = createContext<SettingsContextValue>({
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<MugSettings>(DEFAULT_SETTINGS);
 
+  const loadedOnceRef = useRef(false);
+
   useEffect(() => {
     setSettings(loadSettings(getBrowserStorage()));
+    loadedOnceRef.current = true;
   }, []);
 
   useEffect(() => {
@@ -37,14 +40,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     body.dataset.ambientVolume = String(settings.ambientVolume);
     body.dataset.ambientEnabled = String(settings.ambientEnabled);
     body.dataset.badgeColor = settings.badgeColor;
+    // Skip the first render: storage may still hold the user's values.
+    if (!loadedOnceRef.current) {
+      return;
+    }
+    saveSettings(settings, getBrowserStorage());
   }, [settings]);
 
   const update = useCallback((patch: Partial<MugSettings>) => {
-    setSettings((prev) => {
-      const next = { ...prev, ...patch };
-      saveSettings(next, getBrowserStorage());
-      return next;
-    });
+    setSettings((prev) => ({ ...prev, ...patch }));
   }, []);
 
   const value = useMemo(() => ({ settings, update }), [settings, update]);

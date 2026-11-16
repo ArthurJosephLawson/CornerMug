@@ -7,11 +7,13 @@ export default function BarChart({
   labels,
   accent = "var(--sage)",
   height = 140,
+  ariaLabel = "bar chart",
 }: {
   values: number[];
   labels: string[];
   accent?: string;
   height?: number;
+  ariaLabel?: string;
 }) {
   const max = Math.max(1, ...values);
   const barW = 34;
@@ -25,7 +27,7 @@ export default function BarChart({
       className="chart"
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label="bar chart"
+      aria-label={ariaLabel}
       style={{ maxWidth: width }}
     >
       {values.map((v, i) => {

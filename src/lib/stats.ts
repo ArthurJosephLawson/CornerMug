@@ -29,9 +29,10 @@ export const BADGE_COLORS: BadgeColor[] = ["rust", "sage", "amber", "wood", "esp
 const STATS_KEY = "cornermug-stats";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** UTC day index for a timestamp (days since epoch). */
-function dayIndex(iso: string): number {
-  return Math.floor(Date.parse(iso) / DAY_MS);
+/** Local day index for a timestamp — day boundaries follow the user's timezone. */
+function localDayIndex(ms: number): number {
+  const d = new Date(ms);
+  return Math.floor((d.getTime() - d.getTimezoneOffset() * 60 * 1000) / DAY_MS);
 }
 
 export function loadSessions(storage: StorageLike | null): PomodoroSession[] {
@@ -57,7 +58,7 @@ export function recordSession(session: PomodoroSession, storage: StorageLike | n
 }
 
 export function computeStats(sessions: PomodoroSession[], nowMs: number): MugStats {
-  const today = Math.floor(nowMs / DAY_MS);
+  const today = localDayIndex(nowMs);
 
   const weeklyMinutes = new Array<number>(7).fill(0);
   let weeklyTotal = 0;
@@ -69,7 +70,7 @@ export function computeStats(sessions: PomodoroSession[], nowMs: number): MugSta
     if (s.mode !== "focus" || !(s.minutes > 0)) {
       continue;
     }
-    const day = dayIndex(s.startedAt);
+    const day = localDayIndex(Date.parse(s.startedAt));
     const minutes = s.minutes;
     allTimeTotal += minutes;
     focusDays.add(day);

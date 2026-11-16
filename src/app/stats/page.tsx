@@ -14,9 +14,17 @@ import { getBrowserStorage } from "@/lib/storage";
 export default function StatsPage() {
   const [range, setRange] = useState<"week" | "month">("week");
   const [stats, setStats] = useState<ReturnType<typeof computeStats> | null>(null);
+  const [dayLabels, setDayLabels] = useState<string[]>([]);
 
   useEffect(() => {
-    setStats(computeStats(loadSessions(getBrowserStorage()), Date.now()));
+    const nowMs = Date.now();
+    setStats(computeStats(loadSessions(getBrowserStorage()), nowMs));
+    const labels: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(nowMs - i * 24 * 60 * 60 * 1000);
+      labels.push(d.toLocaleDateString(undefined, { weekday: "short" }));
+    }
+    setDayLabels(labels);
   }, []);
 
   if (stats === null) {
@@ -26,13 +34,6 @@ export default function StatsPage() {
         <main />
       </>
     );
-  }
-
-  const dayLabels: string[] = [];
-  const now = new Date();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-    dayLabels.push(d.toLocaleDateString(undefined, { weekday: "short" }));
   }
 
   return (
@@ -90,7 +91,12 @@ export default function StatsPage() {
           {range === "week" ? (
             <>
               <h2>Focus minutes — last 7 days</h2>
-              <BarChart values={stats.weeklyMinutes} labels={dayLabels} accent="var(--sage)" />
+              <BarChart
+                values={stats.weeklyMinutes}
+                labels={dayLabels}
+                accent="var(--sage)"
+                ariaLabel={`Focus minutes per day for the last 7 days, total ${stats.weeklyTotal} minutes`}
+              />
             </>
           ) : (
             <>
