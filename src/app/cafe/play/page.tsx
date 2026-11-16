@@ -7,15 +7,18 @@ import ChatSidebar from "@/components/ChatSidebar";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import { loadSession } from "@/lib/session";
 import { isRoomId, ROOM_IDS, validateRoomConfig } from "@/lib/rooms";
+import { useMugSettings } from "@/components/SettingsProvider";
 import type MainCafeScene from "@/game/scenes/MainCafeScene";
 
 /**
  * Cafe play page: requires a verified entry session (sessionStorage).
  * No session → back to the entry gate. Room comes from ?room=, edit mode
- * from ?edit=true. Bare-bones HTML only — the creator styles the UI later.
+ * from ?edit=true. The Phaser canvas is an untouched island inside the
+ * styled shell — game code and art drop in without UI changes.
  */
 export default function CafePlayPage() {
   const router = useRouter();
+  const { settings } = useMugSettings();
   const [username, setUsername] = useState<string | null>(null);
   const [scene, setScene] = useState<MainCafeScene | null>(null);
   const [speech, setSpeech] = useState("");
@@ -110,36 +113,78 @@ export default function CafePlayPage() {
   }
 
   return (
-    <main>
-      <div>
-        Seated as: {username} | Room: {roomId}
-        {edit ? " (EDIT MODE)" : ""} | <a href="/cafe">← rooms</a>
+    <main className="page-enter">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <span className={`badge badge-preview badge-${settings.badgeColor}`}>
+          {username}
+        </span>
+        <span className="muted">
+          Room: {roomId}
+          {edit ? " (edit mode)" : ""}
+        </span>
+        <div style={{ flex: 1 }} />
+        <a className="btn btn-quiet" href="/cafe">
+          ← rooms
+        </a>
+        <a className="btn btn-quiet" href="/help">
+          help
+        </a>
+        <a className="btn btn-quiet" href="/settings">
+          settings
+        </a>
       </div>
-      <div>
-        <GameCanvas roomId={roomId} edit={edit} onSceneReady={setScene} />
-        <ChatSidebar />
-        <PomodoroTimer />
+
+      <div className="play-layout">
+        <div className="game-island">
+          <div className="canvas-frame">
+            <GameCanvas roomId={roomId} edit={edit} onSceneReady={setScene} />
+          </div>
+
+          <div className="card" style={{ marginTop: 14 }}>
+            <div className="entry-form" style={{ justifyContent: "flex-start", marginTop: 0 }}>
+              <input
+                ref={speechRef}
+                value={speech}
+                onChange={(e) => setSpeech(e.target.value)}
+                onFocus={() => scene?.setKeyboardEnabled(false)}
+                onBlur={() => scene?.setKeyboardEnabled(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    say();
+                  }
+                }}
+                placeholder="Press T to talk"
+                style={{ flex: 1, minWidth: 200 }}
+              />
+              <button className="btn btn-accent" onClick={say}>
+                Say
+              </button>
+            </div>
+            <p className="muted" style={{ margin: "8px 0 0" }}>
+              <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrows to
+              move · click a red seat marker within reach to sit · move to
+              stand up · press <kbd>T</kbd> to talk
+            </p>
+          </div>
+        </div>
+
+        <div className="side-column">
+          <ChatSidebar />
+          <PomodoroTimer />
+        </div>
       </div>
-      <div>
-        <input
-          ref={speechRef}
-          value={speech}
-          onChange={(e) => setSpeech(e.target.value)}
-          onFocus={() => scene?.setKeyboardEnabled(false)}
-          onBlur={() => scene?.setKeyboardEnabled(true)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              say();
-            }
-          }}
-          placeholder="Press T to talk"
-        />
-        <button onClick={say}>Say</button>
-      </div>
+
       {edit ? (
-        <div>
-          <h2>Edit mode</h2>
-          <div>
+        <section className="card" style={{ marginTop: 14 }}>
+          <h2>Edit mode — layout tool</h2>
+          <div className="entry-form" style={{ justifyContent: "flex-start", marginTop: 0 }}>
             <input
               value={propKey}
               onChange={(e) => setPropKey(e.target.value)}
@@ -152,26 +197,30 @@ export default function CafePlayPage() {
               }}
               placeholder="prop key (e.g. desk)"
             />
-            <button onClick={addProp}>Add prop</button>
-            <button onClick={copyJson}>Copy room JSON</button>
-            <button onClick={downloadJson}>Download room JSON</button>
+            <button className="btn" onClick={addProp}>
+              Add prop
+            </button>
+            <button className="btn" onClick={copyJson}>
+              Copy room JSON
+            </button>
+            <button className="btn" onClick={downloadJson}>
+              Download room JSON
+            </button>
           </div>
           {exportErrors.length > 0 ? (
-            <ul>
+            <ul className="entry-error" style={{ listStyle: "none", padding: 0 }}>
               {exportErrors.map((err) => (
                 <li key={err}>{err}</li>
               ))}
             </ul>
           ) : null}
-          {exportMessage !== "" ? <div>{exportMessage}</div> : null}
-          <p>Drag props / seats / the SPAWN marker to place them, then export.</p>
-        </div>
-      ) : (
-        <p>
-          WASD / arrows to move. Click a red seat marker within reach to sit. Move
-          to stand up. Press T to talk.
-        </p>
-      )}
+          {exportMessage !== "" ? <p className="muted">{exportMessage}</p> : null}
+          <p className="muted" style={{ margin: "8px 0 0" }}>
+            Drag props / seats / the SPAWN marker to place them, then export and
+            paste into <code>src/config/rooms/interior_N.json</code>.
+          </p>
+        </section>
+      ) : null}
     </main>
   );
 }

@@ -6,8 +6,8 @@ import type { EntryResponse, SessionData } from "@/types/entry";
 import { saveSession } from "@/lib/session";
 
 /**
- * Bare-bones entry gate: Gmail + Username. No styling — the creator
- * designs the UI later. Verification happens server-side.
+ * Entry gate: Gmail + Username. Warm styled card flow. Verification
+ * happens server-side via /api/verify-entry.
  */
 export default function EntryForm() {
   const router = useRouter();
@@ -44,32 +44,42 @@ export default function EntryForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <label htmlFor="gmail">Gmail</label>
-      <input
-        id="gmail"
-        name="gmail"
-        type="email"
-        value={gmail}
-        onChange={(event) => setGmail(event.target.value)}
-        required
-      />
-
-      <label htmlFor="username">Username</label>
-      <input
-        id="username"
-        name="username"
-        type="text"
-        value={username}
-        onChange={(event) => setUsername(event.target.value)}
-        required
-      />
-
-      <button type="submit" disabled={submitting}>
-        Enter the cafe
+      <div className="entry-form">
+        <div>
+          <label htmlFor="gmail" className="muted" style={{ display: "block", marginBottom: 4 }}>
+            Gmail
+          </label>
+          <input
+            id="gmail"
+            name="gmail"
+            type="email"
+            placeholder="you@gmail.com"
+            value={gmail}
+            onChange={(event) => setGmail(event.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="username" className="muted" style={{ display: "block", marginBottom: 4 }}>
+            Username
+          </label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            placeholder="cafe_name"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            required
+          />
+        </div>
+      </div>
+      <button className="btn btn-accent" type="submit" disabled={submitting}>
+        {submitting ? "Unlocking the door…" : "Enter the cafe"}
       </button>
 
       {errors.length > 0 && (
-        <ul>
+        <ul className="entry-error" style={{ listStyle: "none", padding: 0 }}>
           {errors.map((error) => (
             <li key={error}>{error}</li>
           ))}

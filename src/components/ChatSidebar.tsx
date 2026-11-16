@@ -2,13 +2,13 @@
 
 /**
  * Bare-bones chat sidebar shell. Real table-scoped chat arrives with the
- * Supabase Realtime wiring (Phase 3). No styling — the creator designs UI.
+ * Supabase Realtime wiring (Phase 3). Styled as a warm card.
  */
 export default function ChatSidebar() {
   return (
-    <aside>
-      <h2>Chat</h2>
-      <p>chat arrives with Supabase</p>
+    <aside className="card">
+      <h2>Table chat</h2>
+      <p className="muted">chat arrives with Supabase</p>
     </aside>
   );
 }

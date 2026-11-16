@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import SiteNav from "@/components/SiteNav";
 import { loadRoomConfig, ROOM_IDS } from "@/lib/rooms";
 import { loadSession } from "@/lib/session";
 
 /**
- * Room picker: the three cafe interiors with thumbnail previews.
+ * Room picker: the three cafe interiors as cards with thumbnail previews.
  * Missing _thumb.png files show a labeled fallback box (no art generated).
- * Bare-bones HTML — the creator styles the UI later.
  */
 export default function CafePage() {
   const router = useRouter();
@@ -25,37 +26,43 @@ export default function CafePage() {
   }, [router]);
 
   if (!ready) {
-    return null;
+    return (
+      <>
+        <SiteNav />
+        <main />
+      </>
+    );
   }
 
   return (
-    <main>
-      <h1>Pick a room</h1>
-      {ROOM_IDS.map((id) => {
-        const room = loadRoomConfig(id);
-        return (
-          <div key={id}>
-            <button onClick={() => router.push(`/cafe/play?room=${id}`)}>
-              {room.name}
-            </button>
-            {thumbErrors[id] ? (
-              <div
-                style={{ width: 160, height: 90, border: "1px solid #5C4033", background: "#B9A88C" }}
-              >
-                <small>NO {id}_thumb</small>
-              </div>
-            ) : (
-              <img
-                src={`/sprites/${id}_thumb.png`}
-                alt={`${room.name} preview`}
-                width={160}
-                height={90}
-                onError={() => setThumbErrors((prev) => ({ ...prev, [id]: true }))}
-              />
-            )}
-          </div>
-        );
-      })}
-    </main>
+    <>
+      <SiteNav />
+      <main className="page-enter">
+        <h1>Pick a room</h1>
+        <p className="muted">Three cozy interiors. Switch any time.</p>
+        <div className="picker-grid">
+          {ROOM_IDS.map((id) => {
+            const room = loadRoomConfig(id);
+            return (
+              <Link key={id} href={`/cafe/play?room=${id}`} className="card hoverable room-card">
+                <div className="thumb">
+                  {thumbErrors[id] ? (
+                    <div className="thumb-fallback">art on its way</div>
+                  ) : (
+                    <img
+                      src={`/sprites/${id}_thumb.png`}
+                      alt={`${room.name} preview`}
+                      onError={() => setThumbErrors((prev) => ({ ...prev, [id]: true }))}
+                    />
+                  )}
+                </div>
+                <div className="label">{room.name}</div>
+                <div className="muted">pull up a chair →</div>
+              </Link>
+            );
+          })}
+        </div>
+      </main>
+    </>
   );
 }
