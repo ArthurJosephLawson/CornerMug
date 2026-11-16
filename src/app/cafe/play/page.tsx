@@ -104,7 +104,8 @@ export default function CafePlayPage() {
     a.href = url;
     a.download = `${roomId}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    // Defer revocation — same-tick revoke can cancel the download in Firefox.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     setExportMessage("Downloaded");
   }
 
@@ -124,6 +125,8 @@ export default function CafePlayPage() {
           ref={speechRef}
           value={speech}
           onChange={(e) => setSpeech(e.target.value)}
+          onFocus={() => scene?.setKeyboardEnabled(false)}
+          onBlur={() => scene?.setKeyboardEnabled(true)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               say();
@@ -140,6 +143,13 @@ export default function CafePlayPage() {
             <input
               value={propKey}
               onChange={(e) => setPropKey(e.target.value)}
+              onFocus={() => scene?.setKeyboardEnabled(false)}
+              onBlur={() => scene?.setKeyboardEnabled(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  addProp();
+                }
+              }}
               placeholder="prop key (e.g. desk)"
             />
             <button onClick={addProp}>Add prop</button>

@@ -15,7 +15,7 @@ export default function GameCanvas({
 }: {
   roomId: string;
   edit: boolean;
-  onSceneReady?: (scene: MainCafeScene) => void;
+  onSceneReady?: (scene: MainCafeScene | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,6 +41,8 @@ export default function GameCanvas({
       cancelled = true;
       game?.destroy(true);
       game = null;
+      // The old scene is dead — the page must drop its reference.
+      onSceneReady?.(null);
     };
     // Room/edit changes remount the whole game.
     // eslint-disable-next-line react-hooks/exhaustive-deps

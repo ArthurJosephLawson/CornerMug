@@ -14,6 +14,14 @@ const ROOM_CONFIGS: Record<RoomId, RoomConfig> = {
   interior_3: interior3 as RoomConfig,
 };
 
+// Fail fast at startup if a hand-edited template is malformed.
+for (const [id, config] of Object.entries(ROOM_CONFIGS)) {
+  const errs = validateRoomConfig(config);
+  if (errs.length > 0) {
+    throw new Error(`${id}.json invalid: ${errs.join(" ")}`);
+  }
+}
+
 export function isRoomId(id: string): id is RoomId {
   return (ROOM_IDS as readonly string[]).includes(id);
 }
@@ -22,7 +30,9 @@ export function loadRoomConfig(id: string): RoomConfig {
   if (!isRoomId(id)) {
     throw new Error(`Unknown room: ${id}`);
   }
-  return ROOM_CONFIGS[id];
+  // Deep-clone so scene edits (addProp, drags) never mutate the shared
+  // module-level templates across remounts.
+  return structuredClone(ROOM_CONFIGS[id]);
 }
 
 /**

@@ -260,9 +260,12 @@ export default class MainCafeScene extends Phaser.Scene {
       this.tex(`${PLAYER_KEY}_${this.playerFacing}`),
     );
     this.player.setDisplaySize(32, 48);
-    // Feet-area collision box within the 32x48 sprite.
-    this.player.body?.setSize(20, 12);
-    this.player.body?.setOffset(6, 34);
+    // Hitbox in source-texture pixels: creator art may be 2x/4x exports
+    // scaled down, so body sizes must be divided by the sprite scale.
+    const scale = this.player.scaleX;
+    // Feet-area collision box within the 32x48 world sprite.
+    this.player.body?.setSize(Math.round(20 / scale), Math.round(12 / scale));
+    this.player.body?.setOffset(Math.round(6 / scale), Math.round(34 / scale));
     this.physics.add.collider(
       this.player,
       this.physics.world.staticBodies.entries as unknown as Phaser.GameObjects.GameObject[],
@@ -272,14 +275,28 @@ export default class MainCafeScene extends Phaser.Scene {
   }
 
   private setupKeys(): void {
-    this.keys = this.input.keyboard?.addKeys(
+    if (!this.input.keyboard) {
+      throw new Error("MainCafeScene requires keyboard input.");
+    }
+    this.keys = this.input.keyboard.addKeys(
       "W,A,S,D,UP,LEFT,DOWN,RIGHT",
     ) as Record<string, Phaser.Input.Keyboard.Key>;
   }
 
+  /** Disable/enable WASD+arrows while the user types in HTML inputs. */
+  setKeyboardEnabled(enabled: boolean): void {
+    if (this.input.keyboard) {
+      this.input.keyboard.enabled = enabled;
+    }
+  }
+
   private setupSeatClicks(): void {
-    for (const { seat } of this.seatMarkers) {
-      this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+    for (const { seat, marker } of this.seatMarkers) {
+      marker.setData("seatId", seat.id);
+      marker.on("pointerdown", () => {
+        if (this.isEdit || this.seatedSeatId === seat.id) {
+          return;
+        }
         const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, seat.x, seat.y);
         if (dist <= SEAT_RANGE) {
           this.seatAt(seat);
@@ -299,6 +316,9 @@ export default class MainCafeScene extends Phaser.Scene {
 
   private handleMovement(): void {
     const k = this.keys;
+    if (!k) {
+      return;
+    }
     const left = k.A.isDown || k.LEFT.isDown;
     const right = k.D.isDown || k.RIGHT.isDown;
     const up = k.W.isDown || k.UP.isDown;
@@ -383,22 +403,24 @@ export default class MainCafeScene extends Phaser.Scene {
       (
         _pointer: Phaser.Input.Pointer,
         obj: Phaser.GameObjects.GameObject,
-        dragX: number,
-        dragY: number,
+        rawX: number,
+        rawY: number,
       ) => {
+        const dragX = Phaser.Math.Clamp(Math.round(rawX), 0, WORLD_SIZE.width);
+        const dragY = Phaser.Math.Clamp(Math.round(rawY), 0, WORLD_SIZE.height);
         const propIndex = obj.getData("propIndex") as number | undefined;
         if (typeof propIndex === "number" && this.propEntries[propIndex]) {
           const { prop, sprite } = this.propEntries[propIndex];
-          prop.x = Math.round(dragX);
-          prop.y = Math.round(dragY);
+          prop.x = dragX;
+          prop.y = dragY;
           sprite.setPosition(prop.x, prop.y);
           sprite.setDepth(prop.y);
           return;
         }
 
         if (obj.getData("isSpawn") === true) {
-          this.room.spawn.x = Math.round(dragX);
-          this.room.spawn.y = Math.round(dragY);
+          this.room.spawn.x = dragX;
+          this.room.spawn.y = dragY;
           (obj as Phaser.GameObjects.Rectangle).setPosition(dragX, dragY);
           return;
         }
@@ -406,8 +428,8 @@ export default class MainCafeScene extends Phaser.Scene {
         const seatIndex = obj.getData("seatIndex") as number | undefined;
         if (typeof seatIndex === "number" && this.room.snapSeats[seatIndex]) {
           const seat = this.room.snapSeats[seatIndex];
-          seat.x = Math.round(dragX);
-          seat.y = Math.round(dragY);
+          seat.x = dragX;
+          seat.y = dragY;
           (obj as Phaser.GameObjects.Rectangle).setPosition(dragX, dragY);
           (obj as Phaser.GameObjects.Rectangle).setDepth(seat.y);
         }
