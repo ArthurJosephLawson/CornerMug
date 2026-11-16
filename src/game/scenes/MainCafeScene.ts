@@ -341,14 +341,21 @@ export default class MainCafeScene extends Phaser.Scene {
     if (!k) {
       return;
     }
-    // Seated players do not move — they are parked at their snap seat.
-    if (this.seatedSeatId !== null) {
-      return;
-    }
     const left = k.A.isDown || k.LEFT.isDown;
     const right = k.D.isDown || k.RIGHT.isDown;
     const up = k.W.isDown || k.UP.isDown;
     const down = k.S.isDown || k.DOWN.isDown;
+    const wantsMove = left || right || up || down;
+
+    // Seated players are parked — any movement key stands them up first.
+    if (this.seatedSeatId !== null) {
+      if (!wantsMove) {
+        return;
+      }
+      this.seatedSeatId = null;
+      this.seatedStudy = false;
+      this.activeTableId = "cafe";
+    }
 
     let vx = 0;
     let vy = 0;
