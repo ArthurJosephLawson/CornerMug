@@ -266,6 +266,8 @@ export default class MainCafeScene extends Phaser.Scene {
     // Feet-area collision box within the 32x48 world sprite.
     this.player.body?.setSize(Math.round(20 / scale), Math.round(12 / scale));
     this.player.body?.setOffset(Math.round(6 / scale), Math.round(34 / scale));
+    // Hard world bounds: player can never leave the 640x360 playable area.
+    (this.player.body as Phaser.Physics.Arcade.Body).collideWorldBounds = true;
     this.physics.add.collider(
       this.player,
       this.physics.world.staticBodies.entries as unknown as Phaser.GameObjects.GameObject[],
@@ -317,6 +319,10 @@ export default class MainCafeScene extends Phaser.Scene {
   private handleMovement(): void {
     const k = this.keys;
     if (!k) {
+      return;
+    }
+    // Seated players do not move — they are parked at their snap seat.
+    if (this.seatedSeatId !== null) {
       return;
     }
     const left = k.A.isDown || k.LEFT.isDown;
