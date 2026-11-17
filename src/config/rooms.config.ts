@@ -1,0 +1,143 @@
+import type { PropPlacement, RoomDefinition } from '@/types/engine.types';
+
+// Coordinates are normalized to each room's own origin (top-left corner),
+// derived from the composed scene rects in public/sprites/manifest.json.
+
+const cafeProps: PropPlacement[] = [
+  { name: 'wall-window', x: 48, y: 39 },
+  { name: 'wall-clock', x: 170, y: 32 },
+  { name: 'wall-art', x: 220, y: 42 },
+  { name: 'counter', x: 56, y: 102 },
+  { name: 'counter', x: 104, y: 102 },
+  { name: 'espresso-machine', x: 49, y: 82 },
+  { name: 'pastry-case', x: 106, y: 82 },
+  { name: 'kitchen-cabinet', x: 191, y: 71 },
+  { name: 'fridge', x: 227, y: 77 },
+  { name: 'plant-large', x: 18, y: 110 },
+  { name: 'bar-stool', x: 58, y: 131 },
+  { name: 'bar-stool', x: 104, y: 131 },
+  { name: 'cafe-table', x: 53, y: 206 },
+  { name: 'cafe-chair', x: 27, y: 198 },
+  { name: 'cafe-chair', x: 82, y: 198 },
+  { name: 'cafe-table', x: 176, y: 207 },
+  { name: 'cafe-chair', x: 150, y: 199 },
+  { name: 'cafe-chair', x: 205, y: 199 },
+  { name: 'sofa', x: 61, y: 310 },
+  { name: 'coffee-table', x: 62, y: 330 },
+  { name: 'armchair', x: 184, y: 311 },
+  { name: 'plant-large', x: 225, y: 330 },
+];
+
+const apartmentProps: PropPlacement[] = [
+  { name: 'wall-window', x: 188, y: 33 },
+  { name: 'wall-art', x: 107, y: 32 },
+  { name: 'bed', x: 41, y: 87 },
+  { name: 'nightstand', x: 76, y: 75 },
+  { name: 'floor-lamp', x: 83, y: 65 },
+  { name: 'wardrobe', x: 124, y: 75 },
+  { name: 'sink', x: 171, y: 67 },
+  { name: 'stove', x: 204, y: 67 },
+  { name: 'fridge', x: 246, y: 72 },
+  { name: 'rug', x: 179, y: 127 },
+  { name: 'plant-small', x: 139, y: 97 },
+];
+
+const workspaceProps: PropPlacement[] = [
+  { name: 'wall-window', x: 67, y: 33 },
+  { name: 'wall-art', x: 174, y: 32 },
+  { name: 'bookcase', x: 241, y: 68 },
+  { name: 'printer', x: 17, y: 47 },
+  { name: 'filing-cabinet', x: 17, y: 76 },
+  { name: 'desk', x: 73, y: 89 },
+  { name: 'desk', x: 145, y: 89 },
+  { name: 'computer', x: 72, y: 68 },
+  { name: 'computer', x: 142, y: 68 },
+  { name: 'office-chair', x: 73, y: 113 },
+  { name: 'office-chair', x: 142, y: 113 },
+  { name: 'water-cooler', x: 205, y: 82 },
+  { name: 'parcel-stack', x: 222, y: 158 },
+  { name: 'toolbox', x: 15, y: 162 },
+  { name: 'plant-large', x: 259, y: 152 },
+];
+
+export const ROOM_DEFINITIONS: RoomDefinition[] = [
+  {
+    id: 'public-cafe',
+    name: 'Café',
+    width: 256,
+    height: 352,
+    floorTile: 'cream-tile',
+    wallTile: 'wall-sage',
+    spawn: { x: 128, y: 300 },
+    seats: [
+      { id: 'cafe-bar-a', propName: 'bar-stool', x: 58, y: 131, facing: 'south' },
+      { id: 'cafe-bar-b', propName: 'bar-stool', x: 104, y: 131, facing: 'south' },
+      { id: 'cafe-chair-a', propName: 'cafe-chair', x: 27, y: 198, facing: 'south' },
+      { id: 'cafe-chair-b', propName: 'cafe-chair', x: 82, y: 198, facing: 'south' },
+      { id: 'cafe-chair-c', propName: 'cafe-chair', x: 150, y: 199, facing: 'south' },
+      { id: 'cafe-chair-d', propName: 'cafe-chair', x: 205, y: 199, facing: 'south' },
+      { id: 'cafe-sofa', propName: 'sofa', x: 61, y: 310, facing: 'north' },
+      { id: 'cafe-armchair', propName: 'armchair', x: 184, y: 311, facing: 'north' },
+    ],
+    props: cafeProps,
+    blockedRects: [],
+  },
+  {
+    id: 'public-apartment',
+    name: 'Apartment Lounge',
+    width: 272,
+    height: 160,
+    floorTile: 'oak-floor',
+    wallTile: 'wall-cream',
+    spawn: { x: 136, y: 120 },
+    seats: [],
+    props: apartmentProps,
+    blockedRects: [],
+  },
+  {
+    id: 'public-workspace',
+    name: 'Shared Workspace',
+    width: 272,
+    height: 176,
+    floorTile: 'carpet',
+    wallTile: 'wall-cream',
+    spawn: { x: 136, y: 140 },
+    seats: [
+      { id: 'workspace-chair-a', propName: 'office-chair', x: 73, y: 113, facing: 'south' },
+      { id: 'workspace-chair-b', propName: 'office-chair', x: 142, y: 113, facing: 'south' },
+    ],
+    props: workspaceProps,
+    blockedRects: [],
+  },
+];
+
+export const PUBLIC_ROOMS = ROOM_DEFINITIONS.filter((room) => room.id.startsWith('public-'));
+
+export function roomDefinition(roomId: string): RoomDefinition {
+  const definition = ROOM_DEFINITIONS.find((room) => room.id === roomId);
+  if (!definition) {
+    throw new Error(`Unknown room: ${roomId}`);
+  }
+  return definition;
+}
+
+/**
+ * Private rooms have no authored layout, so they reuse the Café shell under
+ * their own id/name.
+ */
+export function resolveRoomDefinition(roomId: string): RoomDefinition {
+  const known = ROOM_DEFINITIONS.find((room) => room.id === roomId);
+  if (known) return known;
+
+  const cafe = ROOM_DEFINITIONS[0];
+  return {
+    ...cafe,
+    id: roomId,
+    name: 'Private Room',
+    seats: cafe.seats.map((seat) => ({ ...seat, id: `${roomId}:${seat.id}` })),
+  };
+}
+
+export function isPublicRoom(roomId: string): boolean {
+  return PUBLIC_ROOMS.some((room) => room.id === roomId);
+}

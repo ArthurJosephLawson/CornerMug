@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ivory: #faf7f2;
+  --ivory-deep: #f5f2eb;
+  --charcoal: #1e1e24;
+  --lavender: #c8b6ff;
+  --pink: #f4acb7;
+  --butter: #fde49e;
+  --sage: #b7e4c7;
+  --powder: #bde0fe;
+  --peach: #ffd6ba;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--ivory);
+  color: var(--charcoal);
+  font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+@layer components {
+  .page-shell {
+    @apply min-h-full bg-ivory text-charcoal;
+  }
+
+  .card-surface {
+    @apply rounded-2xl border border-charcoal/5 bg-white/70 shadow-soft;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+}
+
+::selection {
+  background: var(--lavender);
+  color: var(--charcoal);
+}
