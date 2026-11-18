@@ -274,7 +274,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         if (input.consumeInteract() || interactRequestRef.current) {
           interactRequestRef.current = false;
           if (player.state.seated) {
-            player.stand();
+            player.stand(built.collision);
           } else {
             const seat = nearestSeat();
             if (seat) player.sit(seat);

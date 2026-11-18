@@ -62,9 +62,16 @@ export class PlayerEntity {
     this.inputY = 0;
   }
 
-  stand(): void {
+  stand(collision?: CollisionGrid): void {
     this.state.seated = false;
     this.state.seatId = null;
+    // Chairs sit inside neighbouring tables' collision cells, so standing up
+    // on the exact seat anchor can block every direction. Hop to the nearest
+    // free body position instead of freezing the player.
+    if (collision && collision.isBlockedRect(this.getBodyBox(this.state.position))) {
+      const free = this.findFreeSpot(collision);
+      if (free) this.state.position = free;
+    }
   }
 
   teleport(position: Vector2): void {
@@ -89,6 +96,32 @@ export class PlayerEntity {
     if (!collision.isBlockedRect(box)) {
       this.state.position = next;
     }
+  }
+
+  /**
+   * Widening rings around the current position, preferring the direction the
+   * player will face when standing (south first, out of the chair).
+   */
+  private findFreeSpot(collision: CollisionGrid): Vector2 | null {
+    const origin = this.state.position;
+    const directions: Array<[number, number]> = [
+      [0, 1],
+      [0.7071, 0.7071],
+      [-0.7071, 0.7071],
+      [1, 0],
+      [-1, 0],
+      [0.7071, -0.7071],
+      [-0.7071, -0.7071],
+      [0, -1],
+    ];
+
+    for (let radius = 8; radius <= 72; radius += 8) {
+      for (const [dx, dy] of directions) {
+        const candidate = { x: origin.x + dx * radius, y: origin.y + dy * radius };
+        if (!collision.isBlockedRect(this.getBodyBox(candidate))) return candidate;
+      }
+    }
+    return null;
   }
 
   private getBodyBox(position: Vector2) {

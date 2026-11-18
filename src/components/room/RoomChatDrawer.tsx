@@ -18,13 +18,39 @@ export function RoomChatDrawer({ messages, connected, selfId, onSend }: RoomChat
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [unread, setUnread] = useState(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const lastSeenIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     const node = scrollRef.current;
     if (node) node.scrollTop = node.scrollHeight;
   }, [messages.length, open]);
+
+  // Unread badge: count messages from other players that arrived while the
+  // drawer was closed. Works off message ids so the 50-message cap can't hide
+  // new arrivals.
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last) return;
+
+    if (open) {
+      lastSeenIdRef.current = last.id;
+      setUnread(0);
+      return;
+    }
+    if (last.id === lastSeenIdRef.current) return;
+
+    const seenIndex = lastSeenIdRef.current
+      ? messages.findIndex((message) => message.id === lastSeenIdRef.current)
+      : -1;
+    const fresh = seenIndex === -1 ? messages : messages.slice(seenIndex + 1);
+    const foreign = fresh.filter((message) => message.userId !== selfId).length;
+
+    if (foreign > 0) setUnread((current) => Math.min(99, current + foreign));
+    lastSeenIdRef.current = last.id;
+  }, [messages, open, selfId]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -94,10 +120,17 @@ export function RoomChatDrawer({ messages, connected, selfId, onSend }: RoomChat
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-charcoal text-ivory shadow-card transition-colors hover:bg-charcoal-soft"
-        aria-label={open ? 'Hide chat' : 'Show chat'}
+        className="relative flex h-11 w-11 items-center justify-center rounded-full bg-charcoal text-ivory shadow-card transition-colors hover:bg-charcoal-soft"
+        aria-label={
+          open ? 'Hide chat' : `Show chat${unread > 0 ? ` (${unread} new message${unread === 1 ? '' : 's'})` : ''}`
+        }
       >
         <MessageCircle className="h-5 w-5" />
+        {unread > 0 && !open ? (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] animate-pulse items-center justify-center rounded-full bg-pink px-1 text-[10px] font-bold text-charcoal shadow-card">
+            {unread > 9 ? '9+' : unread}
+          </span>
+        ) : null}
       </button>
     </div>
   );
