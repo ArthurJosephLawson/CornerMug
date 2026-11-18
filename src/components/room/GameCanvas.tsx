@@ -46,6 +46,12 @@ export interface GameCanvasProps {
   onNearSeatChange?: (seat: SeatAnchor | null) => void;
   onSeatedChange?: (seated: boolean) => void;
   className?: string;
+  /** Full-bleed presentation for the phone game mode (no rounded card). */
+  fullscreen?: boolean;
+  /** Zoom the camera to cover the width on wide landscape phone screens. */
+  phoneViewport?: boolean;
+  /** Joystick diameter in CSS pixels. */
+  joystickSize?: number;
 }
 
 export interface GameCanvasHandle {
@@ -69,6 +75,9 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
     onNearSeatChange,
     onSeatedChange,
     className = '',
+    fullscreen = false,
+    phoneViewport = false,
+    joystickSize = 128,
   },
   ref,
 ) {
@@ -163,6 +172,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         viewportHeight: 1,
         minZoom: 1,
         maxZoom: 3,
+        widthCoverage: phoneViewport ? 0.8 : 0,
       });
 
       const remotes = new Map<string, RemoteAvatar>();
@@ -440,12 +450,17 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
     connection.broadcastPresence,
     connection.sendJoin,
     connection.sendLeave,
+    phoneViewport,
   ]);
 
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden rounded-2xl border border-charcoal/10 bg-charcoal ${className}`}
+      className={
+        fullscreen
+          ? `relative h-full w-full overflow-hidden bg-charcoal ${className}`
+          : `relative overflow-hidden rounded-2xl border border-charcoal/10 bg-charcoal ${className}`
+      }
     >
       <canvas
         ref={canvasRef}
@@ -454,8 +469,12 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       />
 
       {isTouchDevice ? (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-20">
-          <TouchJoystick onAxis={(axis) => { touchAxisRef.current = axis; }} />
+        <div
+          className={`pointer-events-none absolute z-20 ${
+            fullscreen ? 'bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-3' : 'bottom-3 left-3'
+          }`}
+        >
+          <TouchJoystick size={joystickSize} onAxis={(axis) => { touchAxisRef.current = axis; }} />
         </div>
       ) : null}
     </div>

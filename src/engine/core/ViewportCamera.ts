@@ -7,6 +7,12 @@ interface CameraOptions {
   viewportHeight: number;
   minZoom?: number;
   maxZoom?: number;
+  /**
+   * Landscape phones give a viewport far wider than the room. When set above
+   * zero the camera zooms in until the room covers that fraction of the
+   * viewport width, cropping vertically instead of letterboxing.
+   */
+  widthCoverage?: number;
 }
 
 /**
@@ -20,6 +26,7 @@ export class ViewportCamera {
   viewportHeight: number;
   minZoom: number;
   maxZoom: number;
+  widthCoverage: number;
 
   zoom = 1;
   center: Vector2 = { x: 0, y: 0 };
@@ -31,6 +38,7 @@ export class ViewportCamera {
     this.viewportHeight = options.viewportHeight;
     this.minZoom = options.minZoom ?? 1;
     this.maxZoom = options.maxZoom ?? 4;
+    this.widthCoverage = options.widthCoverage ?? 0;
     this.recalculateZoom();
     this.center = { x: this.worldWidth / 2, y: this.worldHeight / 2 };
   }
@@ -113,7 +121,16 @@ export class ViewportCamera {
       this.viewportWidth / this.worldWidth,
       this.viewportHeight / this.worldHeight,
     );
-    const zoom = Math.floor(fitZoom);
+    let zoom = Math.max(Math.floor(fitZoom), this.minZoom);
+
+    if (this.widthCoverage > 0) {
+      const coverZoom = Math.ceil((this.viewportWidth * this.widthCoverage) / this.worldWidth);
+      // Keep at least ~90 world pixels of vertical context so the player can
+      // still see where they are walking.
+      const maxByHeight = Math.max(1, Math.floor(this.viewportHeight / 90));
+      zoom = Math.max(zoom, Math.min(coverZoom, maxByHeight));
+    }
+
     this.zoom = Math.min(Math.max(zoom, this.minZoom), this.maxZoom);
   }
 }

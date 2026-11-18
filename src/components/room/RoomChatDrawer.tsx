@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { MessageCircle, SendHorizontal } from 'lucide-react';
 import type { ChatMessage } from '@/types/engine.types';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 
 export interface RoomChatDrawerProps {
@@ -8,13 +9,21 @@ export interface RoomChatDrawerProps {
   connected: boolean;
   selfId: string;
   onSend: (text: string) => Promise<void>;
+  /** Phone presentation: big round trigger + bottom sheet. */
+  compact?: boolean;
 }
 
 function messageTime(sentAt: number): string {
   return new Date(sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function RoomChatDrawer({ messages, connected, selfId, onSend }: RoomChatDrawerProps) {
+export function RoomChatDrawer({
+  messages,
+  connected,
+  selfId,
+  onSend,
+  compact = false,
+}: RoomChatDrawerProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -65,6 +74,94 @@ export function RoomChatDrawer({ messages, connected, selfId, onSend }: RoomChat
     }
   };
 
+  const messageList = (
+    <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
+      {messages.length === 0 ? (
+        <p className="pt-6 text-center text-xs text-charcoal/45">Quiet in here. Say hello.</p>
+      ) : (
+        messages.map((message) => {
+          const own = message.userId === selfId;
+          return (
+            <div key={message.id} className={`flex flex-col ${own ? 'items-end' : 'items-start'}`}>
+              <span className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-charcoal/40">
+                {own ? 'You' : message.username} · {messageTime(message.sentAt)}
+              </span>
+              <span
+                className={`max-w-[85%] whitespace-pre-wrap break-words rounded-xl px-2.5 py-1.5 text-xs ${
+                  own ? 'bg-lavender/70 text-charcoal' : 'bg-charcoal/5 text-charcoal'
+                }`}
+              >
+                {message.text}
+              </span>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+
+  const composer = (
+    <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-charcoal/5 p-2">
+      <input
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Message..."
+        maxLength={280}
+        enterKeyHint="send"
+        className={`min-w-0 flex-1 rounded-full border border-charcoal/10 bg-white outline-none focus:border-lavender ${
+          compact ? 'px-4 py-2.5 text-base' : 'px-3 py-1.5 text-xs'
+        }`}
+      />
+      <Button
+        type="submit"
+        size={compact ? 'md' : 'sm'}
+        loading={sending}
+        aria-label="Send message"
+      >
+        <SendHorizontal className={compact ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
+      </Button>
+    </form>
+  );
+
+  const unreadBadge = unread > 0 && !open ? (
+    <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] animate-pulse items-center justify-center rounded-full bg-pink px-1 text-[10px] font-bold text-charcoal shadow-card">
+      {unread > 9 ? '9+' : unread}
+    </span>
+  ) : null;
+
+  const unreadLabel = unread > 0 ? ` (${unread} new message${unread === 1 ? '' : 's'})` : '';
+
+  if (compact) {
+    return (
+      <div className="pointer-events-auto flex flex-col items-end gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-ivory text-charcoal shadow-card transition-transform active:scale-95"
+          aria-label={`Open room chat${unreadLabel}`}
+        >
+          <MessageCircle className="h-6 w-6" />
+          {unreadBadge}
+        </button>
+
+        <BottomSheet open={open} onClose={() => setOpen(false)} title="Room chat">
+          <div className="flex items-center justify-between pb-2">
+            <span className={`pill ${connected ? 'bg-sage/60' : 'bg-pink/60'} text-[10px]`}>
+              {connected ? 'live' : 'offline'}
+            </span>
+            <span className="text-[11px] text-charcoal/45">
+              {messages.length} message{messages.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <div className="flex h-[46svh] min-h-[150px] flex-col overflow-hidden rounded-2xl border border-charcoal/10 bg-white/70">
+            {messageList}
+            {composer}
+          </div>
+        </BottomSheet>
+      </div>
+    );
+  }
+
   return (
     <div className="pointer-events-auto flex flex-col items-end gap-2">
       {open ? (
@@ -76,44 +173,8 @@ export function RoomChatDrawer({ messages, connected, selfId, onSend }: RoomChat
             </span>
           </div>
 
-          <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
-            {messages.length === 0 ? (
-              <p className="pt-6 text-center text-xs text-charcoal/45">
-                Quiet in here. Say hello.
-              </p>
-            ) : (
-              messages.map((message) => {
-                const own = message.userId === selfId;
-                return (
-                  <div key={message.id} className={`flex flex-col ${own ? 'items-end' : 'items-start'}`}>
-                    <span className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-charcoal/40">
-                      {own ? 'You' : message.username} · {messageTime(message.sentAt)}
-                    </span>
-                    <span
-                      className={`max-w-[85%] whitespace-pre-wrap break-words rounded-xl px-2.5 py-1.5 text-xs ${
-                        own ? 'bg-lavender/70 text-charcoal' : 'bg-charcoal/5 text-charcoal'
-                      }`}
-                    >
-                      {message.text}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-charcoal/5 p-2">
-            <input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Message..."
-              maxLength={280}
-              className="min-w-0 flex-1 rounded-full border border-charcoal/10 bg-white px-3 py-1.5 text-xs outline-none focus:border-lavender"
-            />
-            <Button type="submit" size="sm" loading={sending} aria-label="Send message">
-              <SendHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </form>
+          {messageList}
+          {composer}
         </div>
       ) : null}
 
@@ -121,16 +182,10 @@ export function RoomChatDrawer({ messages, connected, selfId, onSend }: RoomChat
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="relative flex h-11 w-11 items-center justify-center rounded-full bg-charcoal text-ivory shadow-card transition-colors hover:bg-charcoal-soft"
-        aria-label={
-          open ? 'Hide chat' : `Show chat${unread > 0 ? ` (${unread} new message${unread === 1 ? '' : 's'})` : ''}`
-        }
+        aria-label={open ? 'Hide chat' : `Show chat${unreadLabel}`}
       >
         <MessageCircle className="h-5 w-5" />
-        {unread > 0 && !open ? (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] animate-pulse items-center justify-center rounded-full bg-pink px-1 text-[10px] font-bold text-charcoal shadow-card">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        ) : null}
+        {unreadBadge}
       </button>
     </div>
   );

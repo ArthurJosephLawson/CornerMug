@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/Button';
 
 export interface PomodoroWidgetProps {
   timer: PomodoroTimerState;
+  /** Force the phone presentation regardless of viewport width. */
+  compact?: boolean;
 }
 
-export function PomodoroWidget({ timer }: PomodoroWidgetProps) {
+export function PomodoroWidget({ timer, compact = false }: PomodoroWidgetProps) {
   const [open, setOpen] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
   const totalSeconds = timer.mode === 'focus' ? 25 * 60 : 5 * 60;
@@ -63,6 +65,47 @@ export function PomodoroWidget({ timer }: PomodoroWidgetProps) {
     </div>
   );
 
+  const phoneUi = (
+    <>
+      <button
+        type="button"
+        onClick={() => setSheetOpen(true)}
+        className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-2 text-charcoal shadow-card backdrop-blur transition-transform active:scale-95"
+        aria-label={`Open focus timer, ${formatClock(timer.secondsLeft)} remaining`}
+      >
+        <span
+          className={`h-2 w-2 rounded-full ${
+            timer.running ? 'animate-pulse bg-sage-deep' : 'bg-charcoal/25'
+          }`}
+          aria-hidden
+        />
+        <span className="font-mono text-sm font-bold tabular-nums">
+          {formatClock(timer.secondsLeft)}
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-charcoal/50">
+          {timer.mode}
+        </span>
+      </button>
+
+      <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Focus timer">
+        <div className="flex items-center justify-between">
+          {modePill}
+          <span className="text-xs text-charcoal/45">25 min focus · 5 min break</span>
+        </div>
+        <div className="mt-4">{clock}</div>
+        <div className="mt-4">{progressBar}</div>
+        <div className="mt-3">{sessionNote}</div>
+        <div className="mt-4">{controls}</div>
+        <div className="mt-5 flex items-center gap-2 rounded-xl bg-sage/25 px-3 py-2 text-xs text-charcoal/60">
+          <Check className="h-4 w-4 shrink-0 text-sage-deep" />
+          Completed focus sessions are saved to your study stats.
+        </div>
+      </BottomSheet>
+    </>
+  );
+
+  if (compact) return phoneUi;
+
   return (
     <>
       {/* Desktop card */}
@@ -89,43 +132,7 @@ export function PomodoroWidget({ timer }: PomodoroWidgetProps) {
         ) : null}
       </div>
 
-      {/* Phone pill + bottom sheet */}
-      <div className="sm:hidden">
-        <button
-          type="button"
-          onClick={() => setSheetOpen(true)}
-          className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-2 text-charcoal shadow-card backdrop-blur transition-transform active:scale-95"
-          aria-label={`Open focus timer, ${formatClock(timer.secondsLeft)} remaining`}
-        >
-          <span
-            className={`h-2 w-2 rounded-full ${
-              timer.running ? 'animate-pulse bg-sage-deep' : 'bg-charcoal/25'
-            }`}
-            aria-hidden
-          />
-          <span className="font-mono text-sm font-bold tabular-nums">
-            {formatClock(timer.secondsLeft)}
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-charcoal/50">
-            {timer.mode}
-          </span>
-        </button>
-
-        <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Focus timer">
-          <div className="flex items-center justify-between">
-            {modePill}
-            <span className="text-xs text-charcoal/45">25 min focus · 5 min break</span>
-          </div>
-          <div className="mt-4">{clock}</div>
-          <div className="mt-4">{progressBar}</div>
-          <div className="mt-3">{sessionNote}</div>
-          <div className="mt-4">{controls}</div>
-          <div className="mt-5 flex items-center gap-2 rounded-xl bg-sage/25 px-3 py-2 text-xs text-charcoal/60">
-            <Check className="h-4 w-4 shrink-0 text-sage-deep" />
-            Completed focus sessions are saved to your study stats.
-          </div>
-        </BottomSheet>
-      </div>
+      <div className="sm:hidden">{phoneUi}</div>
     </>
   );
 }

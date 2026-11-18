@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Armchair } from 'lucide-react';
+import {
+  Armchair,
+  ArrowLeft,
+  Copy,
+  LogOut,
+  Maximize2,
+  Minimize2,
+  MoreHorizontal,
+  RotateCw,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRoomConnection } from '@/hooks/useRoomConnection';
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice';
+import { usePhoneViewport } from '@/hooks/usePhoneViewport';
 import { usePomodoroTimer } from '@/hooks/usePomodoroTimer';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { showToast } from '@/hooks/useToast';
@@ -17,15 +28,17 @@ import { PomodoroWidget } from '@/components/room/PomodoroWidget';
 import { RoomChatDrawer } from '@/components/room/RoomChatDrawer';
 import { RoomTopBar } from '@/components/room/RoomTopBar';
 import { SeatPromptBadge } from '@/components/room/SeatPromptBadge';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { AvatarPreview } from '@/components/ui/AvatarPreview';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Users } from 'lucide-react';
 
 export function RoomPage() {
   const { roomId = '' } = useParams();
   const { profile } = useAuth();
   const navigate = useNavigate();
   const isTouchDevice = useIsTouchDevice();
+  const { isPhone, isPortrait } = usePhoneViewport();
 
   const baseId = baseRoomId(roomId);
   const publicRoom = isPublicRoom(baseId);
@@ -37,6 +50,10 @@ export function RoomPage() {
   const handleNearSeat = useCallback((seat: SeatAnchor | null) => setNearSeat(seat), []);
   const handleSeated = useCallback((next: boolean) => setSeated(next), []);
   const toggleSeat = useCallback(() => canvasRef.current?.toggleSeat(), []);
+
+  const [hudMenuOpen, setHudMenuOpen] = useState(false);
+  const [rotateDismissed, setRotateDismissed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const connection = useRoomConnection(
     roomId,
@@ -88,6 +105,58 @@ export function RoomPage() {
     };
   }, [profile]);
 
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // The phone game is a fixed overlay; keep the page behind it still.
+  useEffect(() => {
+    if (!isPhone) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isPhone]);
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (!document.documentElement.requestFullscreen) {
+        showToast('This browser does not support fullscreen.', 'info');
+        return;
+      }
+      await document.documentElement.requestFullscreen();
+      const orientation = window.screen.orientation as unknown as
+        | { lock?: (mode: 'landscape') => Promise<void> }
+        | undefined;
+      if (orientation && typeof orientation.lock === 'function') {
+        try {
+          await orientation.lock('landscape');
+        } catch {
+          // Orientation lock is optional; keep playing.
+        }
+      }
+    } catch {
+      showToast('This browser does not support fullscreen.', 'info');
+    }
+  }, []);
+
+  const copyRoomKey = useCallback(async () => {
+    if (!roomId || publicRoom) return;
+    try {
+      await navigator.clipboard.writeText(roomId);
+      showToast('Room key copied.', 'success');
+    } catch {
+      showToast(roomId, 'info');
+    }
+  }, [roomId, publicRoom]);
+
   if (!profile) return null;
 
   if (connection.roomFull) {
@@ -118,12 +187,228 @@ export function RoomPage() {
     );
   }
 
+  const occupants = connection.peers.length + 1;
+  const leaveRoom = () => navigate('/');
+
+  if (isPhone) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-charcoal text-ivory">
+        <header className="flex shrink-0 items-center gap-2 border-b border-white/10 px-2 pb-1.5 pt-[calc(0.375rem+env(safe-area-inset-top,0px))]">
+          <button
+            type="button"
+            onClick={leaveRoom}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-ivory active:bg-white/20"
+            aria-label="Leave room"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold leading-tight">{definition.name}</p>
+            <p className="flex flex-wrap items-center gap-1.5 text-[10px] leading-tight text-ivory/60">
+              {publicRoom ? (
+                <span>Table #{connection.shardNumber}</span>
+              ) : (
+                <span className="font-mono">{roomId}</span>
+              )}
+              <span aria-hidden>·</span>
+              <span>
+                {occupants} / {ROOM_CAPACITY}
+              </span>
+              <span aria-hidden>·</span>
+              <span className={connection.connected ? 'text-sage' : 'text-pink'}>
+                {connection.connected ? 'live' : 'offline'}
+              </span>
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <AmbientMixer compact />
+            <div className="hidden min-[360px]:block">
+              <PomodoroWidget timer={pomodoro} compact />
+            </div>
+            <button
+              type="button"
+              onClick={() => void toggleFullscreen()}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-ivory active:bg-white/20"
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            >
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setHudMenuOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-ivory active:bg-white/20"
+              aria-label="Room menu"
+            >
+              <MoreHorizontal className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
+
+        <div className="relative flex-1 overflow-hidden">
+          <GameCanvas
+            ref={canvasRef}
+            roomId={roomId}
+            userId={profile.id}
+            username={profile.username}
+            slug={profile.avatar_slug}
+            connection={connection}
+            onNearSeatChange={handleNearSeat}
+            onSeatedChange={handleSeated}
+            fullscreen
+            phoneViewport
+            joystickSize={140}
+          />
+
+          <div className="pointer-events-auto absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] right-3 z-20 flex flex-col items-end gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-[10px] font-semibold shadow-card backdrop-blur transition-opacity ${
+                seated
+                  ? 'bg-lavender text-charcoal'
+                  : nearSeat
+                    ? 'bg-ivory text-charcoal'
+                    : 'pointer-events-none bg-charcoal/70 text-ivory/60'
+              }`}
+            >
+              {seated
+                ? 'Seated'
+                : nearSeat
+                  ? `Chair nearby · ${nearSeat.propName.replace('-', ' ')}`
+                  : 'Walk to a chair'}
+            </span>
+
+            <button
+              type="button"
+              onClick={toggleSeat}
+              disabled={!seated && !nearSeat}
+              className={`flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-bold shadow-card transition-transform active:scale-95 ${
+                seated
+                  ? 'bg-lavender text-charcoal'
+                  : nearSeat
+                    ? 'bg-ivory text-charcoal ring-4 ring-lavender/60'
+                    : 'bg-ivory/20 text-ivory/50'
+              }`}
+              aria-label={seated ? 'Stand up' : nearSeat ? 'Sit on this chair' : 'No chair in reach'}
+            >
+              <Armchair className="h-6 w-6" />
+              {seated ? 'Stand' : 'Sit'}
+            </button>
+
+            <RoomChatDrawer
+              messages={connection.messages}
+              connected={connection.connected}
+              selfId={profile.id}
+              onSend={connection.sendChat}
+              compact
+            />
+          </div>
+
+          {isPortrait && !rotateDismissed ? (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-charcoal/90 px-6 text-center backdrop-blur">
+              <RotateCw className="h-10 w-10 text-lavender" />
+              <p className="text-base font-bold">Turn your phone sideways</p>
+              <p className="max-w-xs text-xs text-ivory/70">
+                CornerMug plays best in landscape: a wider room and bigger controls.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void toggleFullscreen()}
+                  className="rounded-full bg-lavender px-4 py-2 text-xs font-bold text-charcoal active:scale-95"
+                >
+                  Go fullscreen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRotateDismissed(true)}
+                  className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-ivory active:scale-95"
+                >
+                  Play anyway
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <BottomSheet open={hudMenuOpen} onClose={() => setHudMenuOpen(false)} title="Room menu">
+          <div className="mb-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-charcoal/45">
+              In this room · {occupants}
+            </p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              <li className="flex items-center gap-2 rounded-full bg-white px-2.5 py-1.5 text-xs font-semibold shadow-soft">
+                <AvatarPreview slug={profile.avatar_slug} size={20} className="rounded" />
+                You
+              </li>
+              {connection.peers.map((peer) => (
+                <li
+                  key={peer.id}
+                  className="flex items-center gap-2 rounded-full bg-white px-2.5 py-1.5 text-xs font-semibold shadow-soft"
+                >
+                  <AvatarPreview slug={peer.slug} size={20} className="rounded" />
+                  <span className="max-w-[9rem] truncate">{peer.username}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                setHudMenuOpen(false);
+                void toggleFullscreen();
+              }}
+              className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold shadow-soft active:scale-[0.99]"
+            >
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              <span className="ml-auto text-[11px] font-medium text-charcoal/45">more room</span>
+            </button>
+
+            {!publicRoom ? (
+              <button
+                type="button"
+                onClick={() => void copyRoomKey()}
+                className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold shadow-soft active:scale-[0.99]"
+              >
+                <Copy className="h-4 w-4" />
+                Copy room key
+                <span className="ml-auto font-mono text-[11px] font-medium text-charcoal/45">
+                  {roomId}
+                </span>
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => {
+                setHudMenuOpen(false);
+                leaveRoom();
+              }}
+              className="flex w-full items-center gap-3 rounded-2xl bg-pink/70 px-4 py-3 text-left text-sm font-semibold text-charcoal shadow-soft active:scale-[0.99]"
+            >
+              <LogOut className="h-4 w-4" />
+              Leave room
+            </button>
+          </div>
+
+          <p className="mt-4 rounded-xl bg-sage/25 px-3 py-2 text-xs leading-relaxed text-charcoal/65">
+            Left stick walks. The chair button lights up when a seat is in reach. Ambient sound and
+            the focus timer are in the top bar.
+          </p>
+        </BottomSheet>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <RoomTopBar
         roomName={definition.name}
         roomKey={publicRoom ? null : roomId}
-        occupantCount={connection.peers.length + 1}
+        occupantCount={occupants}
         capacity={ROOM_CAPACITY}
         tableNumber={publicRoom ? connection.shardNumber : undefined}
         connected={connection.connected}
