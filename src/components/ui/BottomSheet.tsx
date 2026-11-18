@@ -1,0 +1,56 @@
+import { useEffect, type ReactNode } from 'react';
+import { X } from 'lucide-react';
+
+export interface BottomSheetProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}
+
+/**
+ * Mobile-only bottom sheet: dimmed backdrop, rounded panel, close button and
+ * Escape support. Used for the focus timer and ambience controls on phones.
+ */
+export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="pointer-events-auto fixed inset-0 z-50 flex items-end justify-center sm:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
+      <button
+        type="button"
+        className="absolute inset-0 bg-charcoal/40 backdrop-blur-sm"
+        aria-label={`Close ${title}`}
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-md rounded-t-3xl border-t border-charcoal/10 bg-ivory p-5 pb-8 shadow-card">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-bold">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-charcoal/50 transition-colors hover:bg-charcoal/5 hover:text-charcoal"
+            aria-label={`Close ${title}`}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}

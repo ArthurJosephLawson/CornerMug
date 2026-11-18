@@ -155,23 +155,19 @@ export function RoomPage() {
           </button>
         ) : null}
 
-        <div className="pointer-events-none absolute left-3 top-3">
+        <div className="pointer-events-none absolute left-3 top-3 z-20">
           <AmbientMixer />
         </div>
 
         {isTouchDevice && !seated && !nearSeat ? (
-          <div className="pointer-events-none absolute right-3 top-3 z-20">
+          <div className="pointer-events-none absolute bottom-40 left-1/2 z-20 -translate-x-1/2 sm:hidden">
             <span className="rounded-full bg-charcoal/70 px-3 py-1.5 text-[11px] font-semibold text-ivory backdrop-blur">
               Walk up to a chair to sit
             </span>
           </div>
         ) : null}
 
-        <div
-          className={`pointer-events-none absolute left-3 ${
-            isTouchDevice ? 'bottom-40' : 'bottom-3'
-          }`}
-        >
+        <div className="pointer-events-none absolute right-3 top-3 z-20 sm:bottom-3 sm:left-3 sm:right-auto sm:top-auto">
           <PomodoroWidget timer={pomodoro} />
         </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CloudRain, Coffee, Volume2, VolumeX } from 'lucide-react';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 
 type AmbientKind = 'rain' | 'cafe';
@@ -118,6 +119,7 @@ export function AmbientMixer() {
   const [rain, setRain] = useState(initial.current.rain);
   const [cafe, setCafe] = useState(initial.current.cafe);
   const [volume, setVolume] = useState(initial.current.volume);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     ambientEngine.setVolume(initial.current.volume);
@@ -142,37 +144,114 @@ export function AmbientMixer() {
   };
 
   return (
-    <div className="pointer-events-auto w-64 rounded-2xl border border-charcoal/10 bg-white/85 p-4 shadow-card backdrop-blur">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-bold">Ambience</p>
-        {volume > 0 ? <Volume2 className="h-4 w-4 text-charcoal/50" /> : <VolumeX className="h-4 w-4 text-charcoal/40" />}
+    <>
+      {/* Desktop panel */}
+      <div className="pointer-events-auto hidden w-64 rounded-2xl border border-charcoal/10 bg-white/85 p-4 shadow-card backdrop-blur sm:block">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-bold">Ambience</p>
+          {volume > 0 ? <Volume2 className="h-4 w-4 text-charcoal/50" /> : <VolumeX className="h-4 w-4 text-charcoal/40" />}
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Button variant={rain ? 'secondary' : 'outline'} size="sm" onClick={() => toggleKind('rain')}>
+            <CloudRain className="h-3.5 w-3.5" /> Rain
+          </Button>
+          <Button variant={cafe ? 'secondary' : 'outline'} size="sm" onClick={() => toggleKind('cafe')}>
+            <Coffee className="h-3.5 w-3.5" /> Café
+          </Button>
+        </div>
+
+        <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-charcoal/50">
+          Volume
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={volume}
+          onChange={(event) => {
+            const next = Number(event.target.value);
+            setVolume(next);
+            ambientEngine.setVolume(next);
+          }}
+          className="mt-1 w-full accent-lavender-deep"
+        />
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Button variant={rain ? 'secondary' : 'outline'} size="sm" onClick={() => toggleKind('rain')}>
-          <CloudRain className="h-3.5 w-3.5" /> Rain
-        </Button>
-        <Button variant={cafe ? 'secondary' : 'outline'} size="sm" onClick={() => toggleKind('cafe')}>
-          <Coffee className="h-3.5 w-3.5" /> Café
-        </Button>
-      </div>
+      {/* Phone trigger + bottom sheet */}
+      <div className="sm:hidden">
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className="pointer-events-auto relative flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-charcoal shadow-card backdrop-blur transition-transform active:scale-95"
+          aria-label={`Open ambience${rain || cafe ? ' (active)' : ''}`}
+        >
+          {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+          {rain || cafe ? (
+            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-sage-deep ring-2 ring-white" />
+          ) : null}
+        </button>
 
-      <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-charcoal/50">
-        Volume
-      </label>
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.05}
-        value={volume}
-        onChange={(event) => {
-          const next = Number(event.target.value);
-          setVolume(next);
-          ambientEngine.setVolume(next);
-        }}
-        className="mt-1 w-full accent-lavender-deep"
-      />
-    </div>
+        <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Ambience">
+          <p className="text-xs text-charcoal/55">
+            Procedural loops — no files to download. Mix them however you like.
+          </p>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => toggleKind('rain')}
+              aria-pressed={rain}
+              className={`flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-semibold transition-colors ${
+                rain
+                  ? 'border-lavender-deep bg-lavender/40 text-charcoal'
+                  : 'border-charcoal/10 bg-white/70 text-charcoal/70'
+              }`}
+            >
+              <CloudRain className="h-6 w-6" />
+              Rain
+              <span className="text-[10px] font-medium uppercase tracking-wide text-charcoal/45">
+                {rain ? 'on' : 'off'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleKind('cafe')}
+              aria-pressed={cafe}
+              className={`flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-semibold transition-colors ${
+                cafe
+                  ? 'border-lavender-deep bg-lavender/40 text-charcoal'
+                  : 'border-charcoal/10 bg-white/70 text-charcoal/70'
+              }`}
+            >
+              <Coffee className="h-6 w-6" />
+              Café
+              <span className="text-[10px] font-medium uppercase tracking-wide text-charcoal/45">
+                {cafe ? 'on' : 'off'}
+              </span>
+            </button>
+          </div>
+
+          <label className="mt-5 block text-[11px] font-semibold uppercase tracking-wide text-charcoal/50">
+            Volume
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={volume}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setVolume(next);
+              ambientEngine.setVolume(next);
+            }}
+            className="mt-2 h-2 w-full accent-lavender-deep"
+            aria-label="Ambience volume"
+          />
+        </BottomSheet>
+      </div>
+    </>
   );
 }
