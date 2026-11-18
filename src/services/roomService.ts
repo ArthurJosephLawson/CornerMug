@@ -14,25 +14,20 @@ function mapRoom(row: Record<string, unknown>): RoomRow {
   };
 }
 
+/**
+ * The public room catalog is authored in code — always exactly the three
+ * public rooms, never whatever private rooms players have created. Private
+ * rooms are reached through their shared key (findRoomByKey), not this list.
+ */
 export async function listRooms(): Promise<RoomRow[]> {
-  const { data, error } = await supabase
-    .from('rooms')
-    .select('id, name, is_public, room_key, owner_id, created_at')
-    .order('is_public', { ascending: false });
-
-  if (error || !data || data.length === 0) {
-    // The room catalog lives in code; the table only adds persistence later.
-    return PUBLIC_ROOMS.map((room) => ({
-      id: room.id,
-      name: room.name,
-      is_public: true,
-      room_key: null,
-      owner_id: null,
-      created_at: '',
-    }));
-  }
-
-  return (data as Record<string, unknown>[]).map(mapRoom);
+  return PUBLIC_ROOMS.map((room) => ({
+    id: room.id,
+    name: room.name,
+    is_public: true,
+    room_key: null,
+    owner_id: null,
+    created_at: '',
+  }));
 }
 
 /** Creates a shareable private room key. Rows are optional at this stage. */

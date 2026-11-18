@@ -84,7 +84,7 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
   },
   {
     id: 'public-apartment',
-    name: 'Apartment Lounge',
+    name: 'Apartment',
     width: 272,
     height: 160,
     floorTile: 'oak-floor',
@@ -96,7 +96,7 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
   },
   {
     id: 'public-workspace',
-    name: 'Shared Workspace',
+    name: 'Office',
     width: 272,
     height: 176,
     floorTile: 'carpet',

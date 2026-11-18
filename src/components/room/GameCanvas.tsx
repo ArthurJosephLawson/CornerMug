@@ -185,7 +185,9 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
 
       const nearestSeat = (): SeatAnchor | null => {
         let best: SeatAnchor | null = null;
-        let bestDistance = 34;
+        // Generous radius: on phones the joystick makes fine positioning hard,
+        // and nobody enjoys pixel-hunting a chair.
+        let bestDistance = 52;
         for (const seat of definition.seats) {
           const distance = Math.hypot(seat.x - player.state.position.x, seat.y - player.state.position.y);
           if (distance < bestDistance) {

@@ -26,7 +26,7 @@ export function SeatPromptBadge({ seat, onPress }: SeatPromptBadgeProps) {
         <button
           type="button"
           onClick={onPress}
-          className="flex items-center gap-2 rounded-full bg-charcoal/85 px-4 py-2 text-xs font-semibold text-ivory shadow-card backdrop-blur transition-colors active:bg-charcoal"
+          className="flex items-center gap-2 rounded-full bg-charcoal/90 px-5 py-3 text-sm font-semibold text-ivory shadow-card backdrop-blur transition-colors active:scale-95 active:bg-charcoal"
         >
           {content}
         </button>

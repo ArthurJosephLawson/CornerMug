@@ -159,6 +159,14 @@ export function RoomPage() {
           <AmbientMixer />
         </div>
 
+        {isTouchDevice && !seated && !nearSeat ? (
+          <div className="pointer-events-none absolute right-3 top-3 z-20">
+            <span className="rounded-full bg-charcoal/70 px-3 py-1.5 text-[11px] font-semibold text-ivory backdrop-blur">
+              Walk up to a chair to sit
+            </span>
+          </div>
+        ) : null}
+
         <div
           className={`pointer-events-none absolute left-3 ${
             isTouchDevice ? 'bottom-40' : 'bottom-3'
