@@ -50,8 +50,8 @@ export function CreditsPoliciesPage() {
             <div className="space-y-2 text-sm leading-relaxed text-charcoal/70">
               <h2 className="font-bold text-charcoal">Privacy policy</h2>
               <ul className="list-disc space-y-1 pl-4">
-                <li>We store your email, username, generated user key, avatar, and study stats.</li>
-                <li>Your email and user key are never shown to other players.</li>
+                <li>We store your email, username, password, avatar, and study stats.</li>
+                <li>Your email and password are never shown to other players.</li>
                 <li>Friends only see your username, avatar, and approximate last-seen time.</li>
                 <li>You can remove friends and delete your account data at any time.</li>
               </ul>

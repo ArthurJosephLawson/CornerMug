@@ -10,6 +10,7 @@ import type { RoomRow } from '@/types/database.types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PrivateRoomModal } from '@/components/dashboard/PrivateRoomModal';
+import { ProgressPanel } from '@/components/dashboard/ProgressPanel';
 import { PublicRoomCard } from '@/components/dashboard/PublicRoomCard';
 import { StudyStatsGrid } from '@/components/dashboard/StudyStatsGrid';
 
@@ -45,6 +46,8 @@ export function DashboardPage() {
           <Plus className="h-4 w-4" /> Private space
         </Button>
       </section>
+
+      <ProgressPanel xp={profile?.xp ?? 0} money={profile?.money ?? 0} />
 
       <StudyStatsGrid stats={stats} />
 

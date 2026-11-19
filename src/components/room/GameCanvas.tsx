@@ -19,6 +19,7 @@ import {
   PROP_PIVOT_Y,
 } from '@/config/sprites.config';
 import { resolveRoomDefinition } from '@/config/rooms.config';
+import { rankForXp } from '@/lib/ranks';
 import type { RoomConnectionState } from '@/hooks/useRoomConnection';
 import { PRESENCE_BROADCAST_MS, PRESENCE_HEARTBEAT_MS } from '@/types/network.types';
 import type {
@@ -33,6 +34,7 @@ import type { NetworkPeer } from '@/types/network.types';
 interface RemoteAvatar {
   player: PlayerEntity;
   slug: CharacterSlug;
+  xp: number;
   sheet: ParsedSpriteSheet | null;
   animator: AnimationController | null;
 }
@@ -42,9 +44,13 @@ export interface GameCanvasProps {
   userId: string;
   username: string;
   slug: CharacterSlug;
+  xp?: number;
+  /** Shows the laptop prop after the shop unlock. */
+  ownsLaptop?: boolean;
   connection: RoomConnectionState;
   onNearSeatChange?: (seat: SeatAnchor | null) => void;
   onSeatedChange?: (seated: boolean) => void;
+  onLaptopChange?: (open: boolean) => void;
   className?: string;
   /** Full-bleed presentation for the phone game mode (no rounded card). */
   fullscreen?: boolean;
@@ -57,6 +63,8 @@ export interface GameCanvasProps {
 export interface GameCanvasHandle {
   /** Sit / stand toggle, shared by the E key, the seat badge and touch. */
   toggleSeat: () => void;
+  /** Open / close the laptop, shared by the L key and the phone menu. */
+  toggleLaptop: () => void;
 }
 
 /**
@@ -71,9 +79,12 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
     userId,
     username,
     slug,
+    xp = 0,
+    ownsLaptop = false,
     connection,
     onNearSeatChange,
     onSeatedChange,
+    onLaptopChange,
     className = '',
     fullscreen = false,
     phoneViewport = false,
@@ -87,14 +98,21 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   const peersRef = useRef<NetworkPeer[]>(connection.peers);
   const nearSeatCallbackRef = useRef(onNearSeatChange);
   const seatedCallbackRef = useRef(onSeatedChange);
+  const laptopCallbackRef = useRef(onLaptopChange);
+  const xpRef = useRef(xp);
+  const ownsLaptopRef = useRef(ownsLaptop);
   const touchAxisRef = useRef<InputAxis>({ x: 0, y: 0 });
   const interactRequestRef = useRef(false);
+  const laptopRequestRef = useRef(false);
 
   useImperativeHandle(
     ref,
     () => ({
       toggleSeat: () => {
         interactRequestRef.current = true;
+      },
+      toggleLaptop: () => {
+        laptopRequestRef.current = true;
       },
     }),
     [],
@@ -111,6 +129,18 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   useEffect(() => {
     seatedCallbackRef.current = onSeatedChange;
   }, [onSeatedChange]);
+
+  useEffect(() => {
+    laptopCallbackRef.current = onLaptopChange;
+  }, [onLaptopChange]);
+
+  useEffect(() => {
+    xpRef.current = xp;
+  }, [xp]);
+
+  useEffect(() => {
+    ownsLaptopRef.current = ownsLaptop;
+  }, [ownsLaptop]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -141,8 +171,10 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       if (disposed) return;
 
       const propImages = new Map<string, HTMLImageElement>();
+      const propNames = new Set(definition.props.map((prop) => prop.name));
+      if (ownsLaptopRef.current) propNames.add('computer');
       await Promise.all(
-        [...new Set(definition.props.map((prop) => prop.name))].map(async (name) => {
+        [...propNames].map(async (name) => {
           const image = await loader.loadPropImage(name);
           if (image && !disposed) propImages.set(name, image);
         }),
@@ -178,6 +210,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       const remotes = new Map<string, RemoteAvatar>();
       let lastNearSeatId: string | null = null;
       let lastSeated = false;
+      let laptopOpen = false;
       let lastBroadcastAt = 0;
       let lastPresenceJson = '';
       let lastHeartbeatAt = 0;
@@ -212,6 +245,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         id: player.state.id,
         username: player.state.username,
         slug: player.state.slug,
+        xp: xpRef.current,
         x: Math.round(player.state.position.x),
         y: Math.round(player.state.position.y),
         direction: player.state.direction,
@@ -240,11 +274,13 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
                 seatId: null,
               }),
               slug: peer.slug,
+              xp: peer.xp ?? 0,
               sheet: sheets.get(peer.slug) ?? null,
               animator: null,
             };
             remotes.set(peer.id, avatar);
           }
+          avatar.xp = peer.xp ?? 0;
 
           avatar.player.applyRemote({
             x: peer.x,
@@ -288,6 +324,16 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           } else {
             const seat = nearestSeat();
             if (seat) player.sit(seat);
+          }
+        }
+
+        if (input.consumeLaptopToggle() || laptopRequestRef.current) {
+          laptopRequestRef.current = false;
+          if (ownsLaptopRef.current) {
+            laptopOpen = !laptopOpen;
+            laptopCallbackRef.current?.(laptopOpen);
+          } else {
+            laptopCallbackRef.current?.(false);
           }
         }
 
@@ -346,18 +392,26 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         );
       };
 
-      const drawNameTag = (state: PlayerState) => {
+      const drawNameTag = (state: PlayerState, totalXp: number) => {
         const x = Math.round(state.position.x);
         const y = Math.round(state.position.y - CHARACTER_PIVOT_Y - 6);
         context.font = '600 8px "Plus Jakarta Sans", Inter, sans-serif';
-        context.textAlign = 'center';
+        context.textAlign = 'left';
         context.textBaseline = 'bottom';
-        const label = state.username;
-        const width = context.measureText(label).width;
+
+        const rank = rankForXp(totalXp);
+        const nameLabel = state.username;
+        const rankLabel = ` [${rank.name}]`;
+        const nameWidth = context.measureText(nameLabel).width;
+        const rankWidth = context.measureText(rankLabel).width;
+        const left = x - (nameWidth + rankWidth) / 2;
+
         context.fillStyle = 'rgba(30, 30, 36, 0.55)';
-        context.fillRect(x - width / 2 - 3, y - 9, width + 6, 11);
+        context.fillRect(left - 3, y - 9, nameWidth + rankWidth + 6, 11);
         context.fillStyle = '#FAF7F2';
-        context.fillText(label, x, y);
+        context.fillText(nameLabel, left, y);
+        context.fillStyle = rank.color;
+        context.fillText(rankLabel, left + nameWidth, y);
       };
 
       const render = () => {
@@ -398,6 +452,15 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           draw: () => drawSprite(localSheet, localAnimator.getCurrentFrame(), player.state.position),
         });
 
+        if (laptopOpen) {
+          // Sits just south of the player so it reads as "on the table in front".
+          const laptopY = player.state.position.y + 4;
+          items.push({
+            groundY: laptopY,
+            draw: () => drawProp('computer', player.state.position.x, laptopY),
+          });
+        }
+
         for (const avatar of remotes.values()) {
           if (!avatar.sheet || !avatar.animator) continue;
           items.push({
@@ -409,8 +472,8 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
 
         for (const item of sorter.sort(items)) item.draw();
 
-        drawNameTag(player.state);
-        for (const avatar of remotes.values()) drawNameTag(avatar.player.state);
+        drawNameTag(player.state, xpRef.current);
+        for (const avatar of remotes.values()) drawNameTag(avatar.player.state, avatar.xp);
 
         camera.resetTransform(context);
       };

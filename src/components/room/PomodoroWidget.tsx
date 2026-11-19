@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, ChevronDown, ChevronUp, Pause, Play, RotateCcw, SkipForward } from 'lucide-react';
 import { formatClock } from '@/lib/formatTime';
-import type { PomodoroTimerState } from '@/hooks/usePomodoroTimer';
+import type { PomodoroTimerState } from '@/context/PomodoroContext';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 

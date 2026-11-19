@@ -31,6 +31,7 @@ export class PresenceTracker {
       id: signal.id,
       username: signal.username,
       slug: signal.slug,
+      xp: signal.xp ?? 0,
       x: existing?.x ?? 0,
       y: existing?.y ?? 0,
       direction: 'south' as Direction,

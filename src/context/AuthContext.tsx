@@ -18,6 +18,17 @@ interface AuthContextValue {
   signIn: (email: string, username: string, userKey: string) => Promise<UserProfile>;
   signOut: () => Promise<void>;
   setAvatar: (avatarSlug: AvatarSlug) => Promise<void>;
+  /** Re-read the profile row (XP, money, owned items) from the database. */
+  refreshProfile: () => Promise<void>;
+  /** Apply a progress snapshot returned by a shop / XP RPC. */
+  applyProgress: (update: ProgressUpdate) => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+}
+
+export interface ProgressUpdate {
+  xp?: number;
+  money?: number;
+  owned_items?: string[];
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -100,9 +111,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [handleProfile, profile],
   );
 
+  const refreshProfile = useCallback(async () => {
+    const restored = await authService.restoreSession();
+    if (restored) handleProfile(restored);
+  }, [handleProfile]);
+
+  const applyProgress = useCallback(
+    (update: ProgressUpdate) => {
+      setProfile((current) => {
+        if (!current) return current;
+        const next: UserProfile = {
+          ...current,
+          xp: update.xp ?? current.xp,
+          money: update.money ?? current.money,
+          owned_items: update.owned_items ?? current.owned_items,
+        };
+        writeSession(toStoredSession(next));
+        return next;
+      });
+    },
+    [],
+  );
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      if (!profile) throw new Error('Not signed in.');
+      await authService.changePassword(profile.id, profile.email, currentPassword, newPassword);
+      handleProfile({ ...profile, user_key: newPassword.trim() });
+    },
+    [handleProfile, profile],
+  );
+
   const value = useMemo<AuthContextValue>(
-    () => ({ profile, loading, signUp, signIn, signOut, setAvatar }),
-    [profile, loading, signUp, signIn, signOut, setAvatar],
+    () => ({
+      profile,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      setAvatar,
+      refreshProfile,
+      applyProgress,
+      changePassword,
+    }),
+    [profile, loading, signUp, signIn, signOut, setAvatar, refreshProfile, applyProgress, changePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

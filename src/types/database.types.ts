@@ -15,6 +15,10 @@ export interface UserProfile {
   is_admin: boolean;
   last_seen_at: string;
   created_at: string;
+  /** Progress features. Defaults keep older accounts working before migration. */
+  xp: number;
+  money: number;
+  owned_items: string[];
 }
 
 export interface RoomRow {
@@ -39,6 +43,7 @@ export interface FeedbackRow {
   id: string;
   user_id: string | null;
   category: FeedbackCategory;
+  subject: string | null;
   message: string;
   created_at: string;
 }

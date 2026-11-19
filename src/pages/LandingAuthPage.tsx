@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Coffee, KeyRound, Mail, User } from 'lucide-react';
+import { ArrowRight, Coffee, Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { CHARACTERS } from '@/config/sprites.config';
 import type { CharacterSlug } from '@/types/engine.types';
@@ -25,6 +25,7 @@ export function LandingAuthPage() {
   const [username, setUsername] = useState('');
   const [userKey, setUserKey] = useState('');
   const [avatar, setAvatar] = useState<CharacterSlug>('resident');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,18 +128,34 @@ export function LandingAuthPage() {
             />
             {mode === 'signin' ? (
               <Input
-                label="User key"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={userKey}
-                onChange={(event) => setUserKey(event.target.value.toUpperCase())}
-                placeholder="MUG-0000-0000"
-                icon={<KeyRound className="h-4 w-4" />}
-                hint="Sent to you when your account was created."
+                onChange={(event) => setUserKey(event.target.value)}
+                placeholder="Your password"
+                icon={<Lock className="h-4 w-4" />}
+                hint="Your generated key, or a password you set in Settings."
+                autoComplete="current-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className="rounded-lg p-1.5 text-charcoal/45 transition-colors hover:bg-charcoal/5 hover:text-charcoal"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                }
               />
             ) : (
               <p className="rounded-xl bg-butter/40 px-3 py-2 text-xs leading-relaxed text-charcoal/70">
-                We generate a User Key for you. Keep it somewhere safe — it is how you
-                sign back in on other devices.
+                We generate a password for you. Keep it somewhere safe — it is how you sign back
+                in on other devices. You can replace it with your own password in Settings.
               </p>
             )}
 
@@ -149,7 +166,7 @@ export function LandingAuthPage() {
             ) : null}
 
             <Button type="submit" loading={busy} className="w-full">
-              {mode === 'signin' ? 'Enter CornerMug' : 'Create my key'}
+              {mode === 'signin' ? 'Enter CornerMug' : 'Create my password'}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </form>

@@ -9,11 +9,13 @@ import {
   Menu,
   Settings,
   ShieldCheck,
+  ShoppingBag,
   Users,
   X,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { rankForXp } from '@/lib/ranks';
 import { AvatarPreview } from '@/components/ui/AvatarPreview';
 
 interface NavItem {
@@ -31,6 +33,7 @@ export function Navbar() {
 
   const links: NavItem[] = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/shop', label: 'Shop', icon: ShoppingBag },
     { to: '/friends', label: 'Friends', icon: Users },
     { to: '/settings', label: 'Settings', icon: Settings },
     { to: '/info', label: 'Info & Feedback', icon: Info },
@@ -94,7 +97,9 @@ export function Navbar() {
             <>
               <div className="hidden text-right sm:block">
                 <p className="text-xs font-semibold leading-tight">{profile.username}</p>
-                <p className="text-[10px] uppercase tracking-wide text-ivory/50">{profile.user_key}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-ivory/50">
+                  {rankForXp(profile.xp).name} · {profile.money.toLocaleString()} money
+                </p>
               </div>
               <AvatarPreview slug={profile.avatar_slug} size={32} className="rounded-lg" />
               <button
@@ -156,7 +161,7 @@ export function Navbar() {
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold">{profile.username}</p>
                 <p className="truncate text-[10px] uppercase tracking-wide text-ivory/50">
-                  {profile.user_key}
+                  {rankForXp(profile.xp).name} · {profile.money.toLocaleString()} money
                 </p>
               </div>
               <button

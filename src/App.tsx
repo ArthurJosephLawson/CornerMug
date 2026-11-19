@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Coffee } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { PomodoroProvider } from '@/context/PomodoroContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
@@ -14,6 +15,7 @@ import { InfoFeedbackPage } from '@/pages/InfoFeedbackPage';
 import { LandingAuthPage } from '@/pages/LandingAuthPage';
 import { RoomPage } from '@/pages/RoomPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ShopPage } from '@/pages/ShopPage';
 
 function AuthedPage({ children }: { children: ReactNode }) {
   return (
@@ -53,61 +55,71 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <SettingsProvider>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route
-              path="/room/:roomId"
-              element={
-                <AuthedPage>
-                  <RoomPage />
-                </AuthedPage>
-              }
-            />
-            <Route
-              path="/friends"
-              element={
-                <AuthedPage>
-                  <FriendsPage />
-                </AuthedPage>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <AuthedPage>
-                  <SettingsPage />
-                </AuthedPage>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <AuthedPage>
-                  <AdminPage />
-                </AuthedPage>
-              }
-            />
-            <Route
-              path="/info"
-              element={
-                <AuthedPage>
-                  <InfoFeedbackPage />
-                </AuthedPage>
-              }
-            />
-            <Route
-              path="/credits"
-              element={
-                <AuthedPage>
-                  <CreditsPoliciesPage />
-                </AuthedPage>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <ToastHost />
-        </SettingsProvider>
+        <PomodoroProvider>
+          <SettingsProvider>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route
+                path="/room/:roomId"
+                element={
+                  <AuthedPage>
+                    <RoomPage />
+                  </AuthedPage>
+                }
+              />
+              <Route
+                path="/friends"
+                element={
+                  <AuthedPage>
+                    <FriendsPage />
+                  </AuthedPage>
+                }
+              />
+              <Route
+                path="/shop"
+                element={
+                  <AuthedPage>
+                    <ShopPage />
+                  </AuthedPage>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <AuthedPage>
+                    <SettingsPage />
+                  </AuthedPage>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <AuthedPage>
+                    <AdminPage />
+                  </AuthedPage>
+                }
+              />
+              <Route
+                path="/info"
+                element={
+                  <AuthedPage>
+                    <InfoFeedbackPage />
+                  </AuthedPage>
+                }
+              />
+              <Route
+                path="/credits"
+                element={
+                  <AuthedPage>
+                    <CreditsPoliciesPage />
+                  </AuthedPage>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <ToastHost />
+          </SettingsProvider>
+        </PomodoroProvider>
       </AuthProvider>
     </BrowserRouter>
   );

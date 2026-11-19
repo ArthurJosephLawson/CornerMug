@@ -4,6 +4,7 @@ import {
   Armchair,
   ArrowLeft,
   Copy,
+  Laptop,
   LogOut,
   Maximize2,
   Minimize2,
@@ -15,10 +16,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useRoomConnection } from '@/hooks/useRoomConnection';
 import { useIsTouchDevice } from '@/hooks/useIsTouchDevice';
 import { usePhoneViewport } from '@/hooks/usePhoneViewport';
-import { usePomodoroTimer } from '@/hooks/usePomodoroTimer';
+import { usePomodoro } from '@/context/PomodoroContext';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { showToast } from '@/hooks/useToast';
-import { recordFocusSession, recordHangoutTime } from '@/services/statsService';
+import { recordHangoutTime } from '@/services/statsService';
+import { awardHangout } from '@/services/progressService';
+import { rankForXp } from '@/lib/ranks';
 import { isPublicRoom, resolveRoomDefinition } from '@/config/rooms.config';
 import { ROOM_CAPACITY, baseRoomId } from '@/types/network.types';
 import type { SeatAnchor } from '@/types/engine.types';
@@ -35,7 +38,7 @@ import { Card } from '@/components/ui/Card';
 
 export function RoomPage() {
   const { roomId = '' } = useParams();
-  const { profile } = useAuth();
+  const { profile, applyProgress } = useAuth();
   const navigate = useNavigate();
   const isTouchDevice = useIsTouchDevice();
   const { isPhone, isPortrait } = usePhoneViewport();
@@ -54,6 +57,11 @@ export function RoomPage() {
   const [hudMenuOpen, setHudMenuOpen] = useState(false);
   const [rotateDismissed, setRotateDismissed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [laptopOpen, setLaptopOpen] = useState(false);
+  const ownsLaptop = profile?.owned_items.includes('laptop') ?? false;
+
+  const handleLaptopChange = useCallback((open: boolean) => setLaptopOpen(open), []);
+  const toggleLaptop = useCallback(() => canvasRef.current?.toggleLaptop(), []);
 
   const connection = useRoomConnection(
     roomId,
@@ -63,47 +71,62 @@ export function RoomPage() {
     { capacity: ROOM_CAPACITY, shard: publicRoom },
   );
 
-  const handleFocusComplete = useCallback(
-    (minutes: number) => {
-      if (!profile) return;
-      void recordFocusSession(profile.id, minutes)
-        .then(() => showToast(`Focus session saved: ${minutes} minutes.`, 'success'))
-        .catch(() => showToast('Could not save focus time yet.', 'error'));
-    },
-    [profile],
-  );
-
-  const pomodoro = usePomodoroTimer({
-    focusMinutes: 25,
-    breakMinutes: 5,
-    onFocusComplete: handleFocusComplete,
-  });
+  const pomodoro = usePomodoro();
 
   const { elapsedSeconds } = useTimeTracker(true);
   const elapsedRef = useRef(elapsedSeconds);
   const lastFlushRef = useRef(0);
+  const xpRef = useRef(profile?.xp ?? 0);
+  const profileId = profile?.id ?? '';
 
   useEffect(() => {
     elapsedRef.current = elapsedSeconds;
   }, [elapsedSeconds]);
 
   useEffect(() => {
-    if (!profile) return;
+    xpRef.current = profile?.xp ?? 0;
+  }, [profile?.xp]);
+
+  useEffect(() => {
+    if (!profileId) return;
+
+    const flush = (seconds: number) => {
+      if (seconds <= 0) return;
+      void awardHangout(seconds)
+        .then((result) => {
+          const previousRank = rankForXp(xpRef.current);
+          const nextRank = rankForXp(result.xp);
+          xpRef.current = result.xp;
+          applyProgress({
+            xp: result.xp,
+            money: result.money,
+            owned_items: result.owned_items,
+          });
+          if (nextRank.level > previousRank.level) {
+            showToast(`Rank up! You are now ${nextRank.name}.`, 'success');
+          }
+        })
+        .catch(() => {
+          // Progress migration not applied yet: keep the old stats-only path.
+          void recordHangoutTime(profileId, seconds);
+        });
+    };
+
     lastFlushRef.current = elapsedRef.current;
     const interval = window.setInterval(() => {
       const delta = elapsedRef.current - lastFlushRef.current;
       if (delta >= 30) {
         lastFlushRef.current = elapsedRef.current;
-        void recordHangoutTime(profile.id, delta);
+        flush(delta);
       }
     }, 10_000);
 
     return () => {
       window.clearInterval(interval);
       const remaining = elapsedRef.current - lastFlushRef.current;
-      if (remaining > 0) void recordHangoutTime(profile.id, remaining);
+      flush(remaining);
     };
-  }, [profile]);
+  }, [profileId, applyProgress]);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -253,9 +276,12 @@ export function RoomPage() {
             userId={profile.id}
             username={profile.username}
             slug={profile.avatar_slug}
+            xp={profile.xp}
+            ownsLaptop={ownsLaptop}
             connection={connection}
             onNearSeatChange={handleNearSeat}
             onSeatedChange={handleSeated}
+            onLaptopChange={handleLaptopChange}
             fullscreen
             phoneViewport
             joystickSize={140}
@@ -367,6 +393,20 @@ export function RoomPage() {
               <span className="ml-auto text-[11px] font-medium text-charcoal/45">more room</span>
             </button>
 
+            {ownsLaptop ? (
+              <button
+                type="button"
+                onClick={toggleLaptop}
+                className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold shadow-soft active:scale-[0.99]"
+              >
+                <Laptop className="h-4 w-4" />
+                {laptopOpen ? 'Close laptop' : 'Open laptop'}
+                <span className="ml-auto text-[11px] font-medium text-charcoal/45">
+                  {laptopOpen ? 'packing up' : 'get to work'}
+                </span>
+              </button>
+            ) : null}
+
             {!publicRoom ? (
               <button
                 type="button"
@@ -422,9 +462,12 @@ export function RoomPage() {
           userId={profile.id}
           username={profile.username}
           slug={profile.avatar_slug}
+          xp={profile.xp}
+          ownsLaptop={ownsLaptop}
           connection={connection}
           onNearSeatChange={handleNearSeat}
           onSeatedChange={handleSeated}
+          onLaptopChange={handleLaptopChange}
           className="h-[60svh] min-h-[260px] w-full sm:h-[68svh]"
         />
 
@@ -472,7 +515,14 @@ export function RoomPage() {
         ) : (
           <>
             WASD or arrow keys to walk · <kbd className="rounded bg-charcoal/5 px-1 font-mono">E</kbd>{' '}
-            to sit · chat stays in the room.
+            to sit
+            {ownsLaptop ? (
+              <>
+                {' '}· <kbd className="rounded bg-charcoal/5 px-1 font-mono">L</kbd> to open/close
+                your laptop
+              </>
+            ) : null}{' '}
+            · chat stays in the room.
           </>
         )}
       </p>

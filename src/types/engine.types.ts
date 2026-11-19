@@ -144,6 +144,8 @@ export interface PresencePayload {
   id: string;
   username: string;
   slug: CharacterSlug;
+  /** Total XP, used by other clients to draw the `Name [Rank]` tag. */
+  xp?: number;
   x: number;
   y: number;
   direction: Direction;
@@ -155,6 +157,7 @@ export interface JoinSignal {
   id: string;
   username: string;
   slug: CharacterSlug;
+  xp?: number;
 }
 
 export interface LeaveSignal {

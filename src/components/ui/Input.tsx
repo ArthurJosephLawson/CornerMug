@@ -5,10 +5,12 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   hint?: string;
   icon?: ReactNode;
+  /** Optional control on the right edge, e.g. a show-password toggle. */
+  action?: ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, hint, icon, className = '', id, ...rest },
+  { label, error, hint, icon, action, className = '', id, ...rest },
   ref,
 ) {
   const inputId = id ?? rest.name ?? label;
@@ -30,9 +32,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           id={inputId}
           className={`w-full rounded-xl border bg-white/80 px-3 py-2.5 text-sm text-charcoal outline-none transition-colors placeholder:text-charcoal/35 focus:border-lavender focus:ring-2 focus:ring-lavender/40 ${
             icon ? 'pl-9' : ''
-          } ${error ? 'border-pink-deep' : 'border-charcoal/10'} ${className}`}
+          } ${action ? 'pr-10' : ''} ${error ? 'border-pink-deep' : 'border-charcoal/10'} ${className}`}
           {...rest}
         />
+        {action ? (
+          <span className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center">
+            {action}
+          </span>
+        ) : null}
       </div>
       {error ? (
         <p className="text-xs font-medium text-pink-deep">{error}</p>

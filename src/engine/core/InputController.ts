@@ -8,6 +8,7 @@ const DOWN_KEYS = new Set(['KeyS', 'ArrowDown']);
 const LEFT_KEYS = new Set(['KeyA', 'ArrowLeft']);
 const RIGHT_KEYS = new Set(['KeyD', 'ArrowRight']);
 const INTERACT_KEYS = new Set(['KeyE', 'Space', 'Enter']);
+const LAPTOP_KEYS = new Set(['KeyL']);
 
 /**
  * Keyboard input for the canvas engine. Owns its listeners and exposes an
@@ -16,6 +17,7 @@ const INTERACT_KEYS = new Set(['KeyE', 'Space', 'Enter']);
 export class InputController {
   private pressed = new Set<string>();
   private interactQueued = false;
+  private laptopQueued = false;
   private attached = false;
 
   private isTypingTarget(event: KeyboardEvent): boolean {
@@ -39,6 +41,10 @@ export class InputController {
     this.pressed.add(event.code);
     if (INTERACT_KEYS.has(event.code)) {
       this.interactQueued = true;
+      event.preventDefault();
+    }
+    if (LAPTOP_KEYS.has(event.code)) {
+      this.laptopQueued = true;
       event.preventDefault();
     }
     if (this.isGameKey(event.code)) event.preventDefault();
@@ -92,13 +98,20 @@ export class InputController {
     return true;
   }
 
+  consumeLaptopToggle(): boolean {
+    if (!this.laptopQueued) return false;
+    this.laptopQueued = false;
+    return true;
+  }
+
   private isGameKey(code: string): boolean {
     return (
       UP_KEYS.has(code) ||
       DOWN_KEYS.has(code) ||
       LEFT_KEYS.has(code) ||
       RIGHT_KEYS.has(code) ||
-      INTERACT_KEYS.has(code)
+      INTERACT_KEYS.has(code) ||
+      LAPTOP_KEYS.has(code)
     );
   }
 }

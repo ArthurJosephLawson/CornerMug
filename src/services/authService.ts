@@ -2,6 +2,11 @@ import { supabase } from '@/lib/supabaseClient';
 import { generateUserKey } from '@/lib/keyGenerator';
 import type { AvatarSlug, UserProfile } from '@/types/database.types';
 
+function mapOwnedItems(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
 function mapProfile(row: Record<string, unknown>): UserProfile {
   return {
     id: String(row.id),
@@ -12,6 +17,9 @@ function mapProfile(row: Record<string, unknown>): UserProfile {
     is_admin: row.is_admin === true,
     last_seen_at: String(row.last_seen_at ?? ''),
     created_at: String(row.created_at ?? ''),
+    xp: Number(row.xp ?? 0),
+    money: Number(row.money ?? 0),
+    owned_items: mapOwnedItems(row.owned_items),
   };
 }
 
@@ -41,7 +49,7 @@ export async function signUpWithKey(
       Array.isArray(data.user.identities) && data.user.identities.length === 0;
     throw new Error(
       alreadyRegistered
-        ? 'An account with this email already exists. Sign in with your User Key instead.'
+        ? 'An account with this email already exists. Sign in with your password instead.'
         : 'Sign-up needs email confirmation. Check your inbox, or disable Confirm email in Supabase.',
     );
   }
@@ -67,6 +75,9 @@ export async function signUpWithKey(
     is_admin: false,
     last_seen_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
+    xp: 0,
+    money: 0,
+    owned_items: [],
   };
 }
 
@@ -75,16 +86,25 @@ export async function signInWithKey(
   username: string,
   userKey: string,
 ): Promise<UserProfile> {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password: userKey.trim(),
-  });
+  const normalizedEmail = email.trim().toLowerCase();
+  let password = userKey.trim();
 
+  let auth = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+
+  // Generated keys are uppercase. Accept a lowercase typed key, but keep
+  // custom passwords case-sensitive.
+  const looksLikeGeneratedKey = /^mug-[a-z0-9]{4}-[a-z0-9]{4}$/i.test(password);
+  if (auth.error && looksLikeGeneratedKey && password !== password.toUpperCase()) {
+    password = password.toUpperCase();
+    auth = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+  }
+
+  const { data, error } = auth;
   if (error) {
     throw new Error(error.message);
   }
   if (!data.user) {
-    throw new Error('Sign-in failed. Check your email and user key.');
+    throw new Error('Sign-in failed. Check your email and password.');
   }
 
   const { data: row, error: profileError } = await supabase
@@ -139,4 +159,53 @@ export async function updateAvatar(userId: string, avatarSlug: AvatarSlug): Prom
 
 export async function touchLastSeen(userId: string): Promise<void> {
   await supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', userId);
+}
+
+/**
+ * Replace the generated user key with a custom password. Supabase Auth stores
+ * the real credential, while `users.user_key` keeps the copy used for the
+ * email + username + password sign-in check. Both must stay in sync, so a
+ * failed profile write rolls the auth password back.
+ */
+export async function changePassword(
+  userId: string,
+  email: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const trimmed = newPassword.trim();
+  if (trimmed.length < 8) {
+    throw new Error('Password must be at least 8 characters.');
+  }
+  if (trimmed.length > 32) {
+    throw new Error('Password must be 32 characters or fewer.');
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: normalizedEmail,
+    password: currentPassword,
+  });
+  if (verifyError) {
+    throw new Error('Current password is not correct.');
+  }
+
+  const { error: authError } = await supabase.auth.updateUser({ password: trimmed });
+  if (authError) {
+    throw new Error(authError.message);
+  }
+
+  const { error: profileError } = await supabase
+    .from('users')
+    .update({ user_key: trimmed })
+    .eq('id', userId);
+
+  if (profileError) {
+    // Keep the stored credential and the login copy aligned.
+    await supabase.auth.updateUser({ password: currentPassword });
+    if (profileError.code === '23505') {
+      throw new Error('That password is already taken. Try another one.');
+    }
+    throw new Error(profileError.message);
+  }
 }

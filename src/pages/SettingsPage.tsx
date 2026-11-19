@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import { Check, Copy, LogOut, Volume2 } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { Check, Copy, Eye, EyeOff, Lock, LogOut, Volume2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import { CHARACTERS } from '@/config/sprites.config';
 import { AvatarPreview } from '@/components/ui/AvatarPreview';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { PasswordStrength } from '@/components/ui/PasswordStrength';
+import { showToast } from '@/hooks/useToast';
 
 interface ToggleRowProps {
   label: string;
@@ -41,9 +44,14 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
 }
 
 export function SettingsPage() {
-  const { profile, setAvatar, signOut } = useAuth();
+  const { profile, setAvatar, signOut, changePassword } = useAuth();
   const { settings, updateSettings } = useSettings();
   const [copied, setCopied] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
 
   if (!profile) return null;
 
@@ -54,6 +62,32 @@ export function SettingsPage() {
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard unavailable.
+    }
+  };
+
+  const handlePasswordSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (passwordBusy) return;
+    if (newPassword.trim().length < 8) {
+      showToast('Password must be at least 8 characters.', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('The new passwords do not match.', 'error');
+      return;
+    }
+
+    setPasswordBusy(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      showToast('Password updated. Use it next time you sign in.', 'success');
+    } catch (caught) {
+      showToast(caught instanceof Error ? caught.message : 'Could not change password.', 'error');
+    } finally {
+      setPasswordBusy(false);
     }
   };
 
@@ -75,8 +109,10 @@ export function SettingsPage() {
                 type="button"
                 onClick={copyKey}
                 className="mt-2 flex items-center gap-1.5 rounded-full bg-charcoal/5 px-2.5 py-1 font-mono text-xs hover:bg-charcoal/10"
+                title="Copy password"
               >
-                {profile.user_key}
+                <Lock className="h-3 w-3 text-charcoal/40" />
+                ••••••••
                 {copied ? <Check className="h-3 w-3 text-sage-deep" /> : <Copy className="h-3 w-3 text-charcoal/40" />}
               </button>
             </div>
@@ -142,6 +178,81 @@ export function SettingsPage() {
           </div>
         </Card>
       </div>
+
+      <Card tone="butter">
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-charcoal/50" />
+            <div>
+              <h2 className="font-bold">Password</h2>
+              <p className="text-xs text-charcoal/50">
+                Replace the password you were given with one you choose.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input
+              label="Current password"
+              type={showPasswords ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              required
+              autoComplete="current-password"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+            <Input
+              label="New password"
+              type={showPasswords ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              required
+              minLength={8}
+              maxLength={32}
+              autoComplete="new-password"
+              autoCapitalize="none"
+              spellCheck={false}
+              action={
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords((value) => !value)}
+                  className="rounded-lg p-1.5 text-charcoal/45 transition-colors hover:bg-charcoal/5 hover:text-charcoal"
+                  aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}
+                  aria-pressed={showPasswords}
+                >
+                  {showPasswords ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              }
+            />
+          </div>
+
+          <PasswordStrength value={newPassword} />
+
+          <Input
+            label="Confirm new password"
+            type={showPasswords ? 'text' : 'password'}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+            autoComplete="new-password"
+            autoCapitalize="none"
+            spellCheck={false}
+            error={
+              confirmPassword && confirmPassword !== newPassword
+                ? 'Passwords do not match.'
+                : undefined
+            }
+          />
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-charcoal/45">8–32 characters. This becomes your sign-in password.</p>
+            <Button type="submit" loading={passwordBusy}>
+              <Lock className="h-4 w-4" /> Update password
+            </Button>
+          </div>
+        </form>
+      </Card>
 
       <Button variant="danger" onClick={() => void signOut()}>
         <LogOut className="h-4 w-4" /> Sign out

@@ -25,8 +25,15 @@ with live chat, ambient sounds, and a presence system that shows exactly who is 
   up to 10 tables. The dashboard sums live occupancy across all tables.
 - **Friends** — send and accept friend requests, see every player on CornerMug,
   add people by exact username.
-- **Study tools** — pomodoro timer, focus-session tracking, hangout-time stats,
-  ambient sound mixer (rain, fireplace, café hum...).
+- **Study tools** — pomodoro timer that survives sign-in and room changes, focus-session
+  tracking, hangout-time stats, ambient sound mixer (rain, fireplace, café hum...).
+- **XP & ranks** — 12 XP per minute in a room, a new rank every 500 XP (Cloud, Sky, Space,
+  Moon, Star, Dream, Nebula). Ranks show in name tags as `Name [Rank]` in their own color.
+- **Shop & laptop** — spend XP on extra money or the laptop unlock, then press `L` in a room
+  to open and close it. Dashboard shows your wallet and XP bar.
+- **Letters** — the Info & Feedback page is a mail desk; sent letters stay in your mailbox.
+- **Custom passwords** — replace the generated sign-in password in Settings, with a live
+  strength meter.
 - **Private rooms** — create a room, get a shareable key like `COZY-3SN`, and only
   people with the key get in.
 - **Admin tools** — an `is_admin` flag with RLS-enforced removal RPC behind `/admin`.
@@ -40,7 +47,7 @@ with live chat, ambient sounds, and a presence system that shows exactly who is 
 | Build      | Vite 5                                              |
 | UI         | React 18 + react-router-dom, Tailwind CSS 3.4       |
 | Language   | TypeScript (strict)                                 |
-| Backend    | Supabase — Postgres, Auth (email + User Key), RLS   |
+| Backend    | Supabase — Postgres, Auth (email + password), RLS   |
 | Realtime   | Supabase Realtime (broadcast + presence)            |
 | Icons      | lucide-react                                        |
 
@@ -72,6 +79,7 @@ editor:
 1. `docs/database-schema.sql` — tables, RLS policies
 2. `docs/admin-migration.sql` — admin flag, helper, admin policies
 3. `docs/create-admin-account.sql` — bootstrap an admin account (placeholders included)
+4. `docs/progress-features-migration.sql` — XP, money, owned items, shop RPCs, mail subject
 
 ## ☁️ Deploying
 
