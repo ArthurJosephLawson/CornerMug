@@ -18,6 +18,12 @@ export interface PurchaseResult extends ProgressSnapshot {
   already_owned: boolean;
 }
 
+export interface RefundResult extends ProgressSnapshot {
+  refunded: number;
+  deducted_money: number;
+  item: string;
+}
+
 function parseProgress(payload: unknown): ProgressSnapshot {
   const row = (payload ?? {}) as Record<string, unknown>;
   const owned = Array.isArray(row.owned_items)
@@ -64,6 +70,21 @@ export async function purchaseItem(item: ShopItemId): Promise<PurchaseResult> {
     ...progress,
     spent: Number(row.spent ?? 0),
     already_owned: row.already_owned === true,
+  };
+}
+
+/** Return a bought item or money pack and get its XP price back. */
+export async function refundItem(item: ShopItemId): Promise<RefundResult> {
+  const { data, error } = await supabase.rpc('refund_item', { p_item: item });
+  if (error) throw new Error(error.message);
+
+  const progress = parseProgress(data);
+  const row = (data ?? {}) as Record<string, unknown>;
+  return {
+    ...progress,
+    refunded: Number(row.refunded ?? 0),
+    deducted_money: Number(row.deducted_money ?? 0),
+    item: String(row.item ?? item),
   };
 }
 

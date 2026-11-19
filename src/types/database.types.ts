@@ -13,6 +13,7 @@ export interface UserProfile {
   user_key: string;
   avatar_slug: AvatarSlug;
   is_admin: boolean;
+  is_owner: boolean;
   last_seen_at: string;
   created_at: string;
   /** Progress features. Defaults keep older accounts working before migration. */

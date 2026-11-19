@@ -1,12 +1,25 @@
 -- ---------------------------------------------------------------------------
 -- CornerMug admin migration
--- Run once in the Supabase SQL editor. Safe to run more than once.
+-- Run once in the Supabase SQL editor (Dashboard -> SQL Editor -> New query).
+-- Safe to run more than once.
+--
+-- Adds:
+--   * is_admin / is_owner flags
+--   * owner-only role changes, renames, password reveal, grants
+--   * protection so other admins cannot touch the owner account
+--   * the refund terminal's server-side RPCs
 -- ---------------------------------------------------------------------------
 
--- Admin flag on users -------------------------------------------------------
+-- Flags ---------------------------------------------------------------------
 alter table public.users add column if not exists is_admin boolean not null default false;
+alter table public.users add column if not exists is_owner boolean not null default false;
 
--- Helper: is the caller an admin? Security definer so RLS policies can use it.
+-- Only one owner row can ever exist.
+create unique index if not exists users_single_owner
+  on public.users ((is_owner))
+  where is_owner;
+
+-- Helpers: security definer so RLS policies and triggers can use them.
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -16,6 +29,19 @@ set search_path = public
 as $$
   select coalesce(
     (select is_admin from public.users where id = auth.uid()),
+    false
+  );
+$$;
+
+create or replace function public.is_owner()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select is_owner from public.users where id = auth.uid()),
     false
   );
 $$;
@@ -40,19 +66,94 @@ create policy "users_admin_delete"
   to authenticated
   using (public.is_admin());
 
--- Remove a player end to end: profile row + Supabase Auth account. ----------
+-- Account protection trigger ------------------------------------------------
+-- Blocks direct REST/RPC edits that would let one admin damage another admin
+-- or the owner. Direct SQL editor access has no JWT, so it bypasses this check.
+create or replace function public.protect_user_accounts()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_actor       uuid := auth.uid();
+  v_actor_owner boolean;
+begin
+  if v_actor is null then
+    if tg_op = 'DELETE' then
+      return old;
+    end if;
+    return new;
+  end if;
+
+  v_actor_owner := public.is_owner();
+
+  if tg_op = 'DELETE' then
+    if old.is_owner then
+      raise exception 'The owner account cannot be deleted.';
+    end if;
+    if old.is_admin and old.id <> v_actor and not v_actor_owner then
+      raise exception 'Only the owner can remove another admin.';
+    end if;
+    return old;
+  end if;
+
+  if new.is_owner is distinct from old.is_owner then
+    raise exception 'The owner flag cannot be changed.';
+  end if;
+
+  if old.is_owner and not new.is_admin then
+    raise exception 'The owner account must stay an admin.';
+  end if;
+
+  if old.is_owner and old.id <> v_actor then
+    raise exception 'The owner account can only be changed by the owner.';
+  end if;
+
+  if new.is_admin is distinct from old.is_admin and not v_actor_owner then
+    raise exception 'Only the owner can change admin roles.';
+  end if;
+
+  if old.is_admin and not old.is_owner and old.id <> v_actor and not v_actor_owner then
+    raise exception 'Only the owner can change another admin.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_user_accounts on public.users;
+create trigger protect_user_accounts
+  before update or delete on public.users
+  for each row execute function public.protect_user_accounts();
+
+-- Remove a player end to end: profile row + Supabase Auth account ----------
 create or replace function public.admin_remove_user(target_id uuid)
 returns void
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_target public.users%rowtype;
 begin
   if not public.is_admin() then
     raise exception 'Only admins can remove users.';
   end if;
   if target_id = auth.uid() then
-    raise exception 'Admins cannot remove their own account here.';
+    raise exception 'You cannot remove your own account.';
+  end if;
+
+  select * into v_target from public.users where id = target_id;
+  if not found then
+    raise exception 'Player not found.';
+  end if;
+
+  if v_target.is_owner then
+    raise exception 'The owner account cannot be removed.';
+  end if;
+  if v_target.is_admin and not public.is_owner() then
+    raise exception 'Only the owner can remove another admin.';
   end if;
 
   delete from public.users where id = target_id;
@@ -60,12 +161,184 @@ begin
 end;
 $$;
 
+-- Promote / demote an admin. Owner only. ------------------------------------
+create or replace function public.admin_set_role(target_id uuid, make_admin boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_target public.users%rowtype;
+begin
+  if not public.is_owner() then
+    raise exception 'Only the owner can change admin roles.';
+  end if;
+
+  select * into v_target from public.users where id = target_id;
+  if not found then
+    raise exception 'Player not found.';
+  end if;
+  if v_target.is_owner then
+    raise exception 'The owner account cannot be changed here.';
+  end if;
+
+  update public.users
+     set is_admin = coalesce(make_admin, false)
+   where id = target_id;
+end;
+$$;
+
+-- Rename a player. Admins may rename players; only the owner may rename admins.
+create or replace function public.admin_rename_user(target_id uuid, new_username text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_target public.users%rowtype;
+  v_name   text := btrim(coalesce(new_username, ''));
+begin
+  if not public.is_admin() then
+    raise exception 'Only admins can rename players.';
+  end if;
+  if char_length(v_name) < 3 or char_length(v_name) > 24 then
+    raise exception 'Username must be 3 to 24 characters.';
+  end if;
+
+  select * into v_target from public.users where id = target_id;
+  if not found then
+    raise exception 'Player not found.';
+  end if;
+
+  if v_target.is_owner then
+    raise exception 'The owner account cannot be renamed here.';
+  end if;
+  if v_target.is_admin and v_target.id <> auth.uid() and not public.is_owner() then
+    raise exception 'Only the owner can rename another admin.';
+  end if;
+
+  update public.users set username = v_name where id = target_id;
+end;
+$$;
+
+-- Reveal a stored sign-in password. Owner only. -----------------------------
+create or replace function public.admin_get_password(target_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_key text;
+begin
+  if not public.is_owner() then
+    raise exception 'Only the owner can view passwords.';
+  end if;
+
+  select user_key into v_key from public.users where id = target_id;
+  if not found then
+    raise exception 'Player not found.';
+  end if;
+
+  return v_key;
+end;
+$$;
+
+-- Grant XP, money, or an item to any player. Admin only. --------------------
+create or replace function public.admin_grant(
+  target_id uuid,
+  p_xp integer default 0,
+  p_money integer default 0,
+  p_item text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_xp        integer := least(greatest(coalesce(p_xp, 0), 0), 1000000);
+  v_money     integer := least(greatest(coalesce(p_money, 0), 0), 1000000);
+  v_item      text := nullif(btrim(coalesce(p_item, '')), '');
+  v_row       public.users%rowtype;
+  v_granted   text := null;
+begin
+  if not public.is_admin() then
+    raise exception 'Only admins can grant rewards.';
+  end if;
+
+  select * into v_row from public.users where id = target_id for update;
+  if not found then
+    raise exception 'Player not found.';
+  end if;
+
+  if v_item is not null then
+    if v_item = 'laptop' or v_item = 'kitten' then
+      if not (v_item = any (v_row.owned_items)) then
+        v_row.owned_items := array_append(v_row.owned_items, v_item);
+        v_granted := v_item;
+      end if;
+    elsif v_item = 'money-250' then
+      v_money := v_money + 250;
+      v_granted := v_item;
+    elsif v_item = 'money-600' then
+      v_money := v_money + 600;
+      v_granted := v_item;
+    elsif v_item = 'money-1500' then
+      v_money := v_money + 1500;
+      v_granted := v_item;
+    else
+      raise exception 'Unknown item. Use laptop, kitten, money-250, money-600, or money-1500.';
+    end if;
+  end if;
+
+  update public.users
+     set xp = xp + v_xp,
+         money = money + v_money,
+         owned_items = v_row.owned_items,
+         last_seen_at = now()
+   where id = target_id
+  returning * into v_row;
+
+  return jsonb_build_object(
+    'username', v_row.username,
+    'xp', v_row.xp,
+    'money', v_row.money,
+    'owned_items', to_jsonb(v_row.owned_items),
+    'granted_xp', v_xp,
+    'granted_money', v_money,
+    'granted_item', v_granted
+  );
+end;
+$$;
+
+-- Permissions ---------------------------------------------------------------
+revoke all on function public.is_admin() from public;
+revoke all on function public.is_owner() from public;
+revoke all on function public.admin_remove_user(uuid) from public;
+revoke all on function public.admin_set_role(uuid, boolean) from public;
+revoke all on function public.admin_rename_user(uuid, text) from public;
+revoke all on function public.admin_get_password(uuid) from public;
+revoke all on function public.admin_grant(uuid, integer, integer, text) from public;
+
 grant execute on function public.is_admin() to authenticated;
+grant execute on function public.is_owner() to authenticated;
 grant execute on function public.admin_remove_user(uuid) to authenticated;
+grant execute on function public.admin_set_role(uuid, boolean) to authenticated;
+grant execute on function public.admin_rename_user(uuid, text) to authenticated;
+grant execute on function public.admin_get_password(uuid) to authenticated;
+grant execute on function public.admin_grant(uuid, integer, integer, text) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Promote your admin AFTER signing up with this email:
---   update public.users set is_admin = true where email = 'your-email@example.com';
--- Check it worked:
---   select username, is_admin from public.users where email = 'your-email@example.com';
+-- Set the owner. Replace the email if your account uses a different one.
+-- The account must already have a public.users row (it is created at sign-up).
 -- ---------------------------------------------------------------------------
+update public.users
+   set is_owner = true,
+       is_admin = true
+ where email = 'arthur.joseph.lawson@gmail.com';
+
+-- Check it worked:
+--   select username, email, is_admin, is_owner from public.users where is_owner;

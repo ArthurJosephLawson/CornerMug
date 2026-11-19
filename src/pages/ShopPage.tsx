@@ -1,15 +1,21 @@
 import { useState } from 'react';
-import { Cat, Check, Coins, Laptop, ShoppingBag, Sparkles } from 'lucide-react';
+import { Cat, Check, Coins, Laptop, RotateCcw, ShoppingBag, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/hooks/useToast';
 import { rankProgressForXp } from '@/lib/ranks';
-import { SHOP_ITEMS, purchaseItem, type ShopItem } from '@/services/progressService';
+import {
+  SHOP_ITEMS,
+  purchaseItem,
+  refundItem,
+  type ShopItem,
+} from '@/services/progressService';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
 export function ShopPage() {
   const { profile, applyProgress } = useAuth();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [refundingId, setRefundingId] = useState<string | null>(null);
   const [migrationMissing, setMigrationMissing] = useState(false);
 
   if (!profile) return null;
@@ -18,7 +24,7 @@ export function ShopPage() {
   const ownedItems = new Set(profile.owned_items);
 
   const handleBuy = async (item: ShopItem) => {
-    if (busyId) return;
+    if (busyId || refundingId) return;
     setBusyId(item.id);
     try {
       const result = await purchaseItem(item.id);
@@ -49,6 +55,38 @@ export function ShopPage() {
       }
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const handleRefund = async (item: ShopItem) => {
+    if (busyId || refundingId) return;
+    setRefundingId(item.id);
+    try {
+      const result = await refundItem(item.id);
+      applyProgress({
+        xp: result.xp,
+        money: result.money,
+        owned_items: result.owned_items,
+      });
+      if (result.deducted_money > 0) {
+        showToast(
+          `Refunded ${item.name}: -${result.deducted_money} money, +${result.refunded} XP.`,
+          'success',
+        );
+      } else {
+        showToast(`Refunded ${item.name} for ${result.refunded} XP.`, 'success');
+      }
+      setMigrationMissing(false);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Refund failed.';
+      if (/function|schema cache|does not exist|Could not find/i.test(message)) {
+        setMigrationMissing(true);
+        showToast('Refunds are not ready yet: run the progress SQL migration first.', 'error');
+      } else {
+        showToast(message, 'error');
+      }
+    } finally {
+      setRefundingId(null);
     }
   };
 
@@ -130,6 +168,8 @@ export function ShopPage() {
           {SHOP_ITEMS.map((item) => {
             const owned = item.kind === 'unlock' && ownedItems.has(item.id);
             const affordable = profile.xp >= item.priceXp;
+            const refundable =
+              item.kind === 'unlock' ? owned : profile.money >= (item.moneyAmount ?? 0);
             const Icon = item.id === 'kitten' ? Cat : item.kind === 'unlock' ? Laptop : Coins;
             return (
               <Card
@@ -161,20 +201,36 @@ export function ShopPage() {
                   </div>
                 </div>
 
-                <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
                   <span className="flex items-center gap-1.5 text-sm font-bold">
                     <Sparkles className="h-4 w-4 text-lavender-deep" />
                     {item.priceXp} XP
                   </span>
-                  <Button
-                    variant={owned ? 'outline' : 'primary'}
-                    size="sm"
-                    disabled={owned || !affordable || busyId !== null}
-                    loading={busyId === item.id}
-                    onClick={() => void handleBuy(item)}
-                  >
-                    {owned ? 'Owned' : affordable ? 'Buy' : 'Need more XP'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {refundable ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busyId !== null || refundingId !== null}
+                        loading={refundingId === item.id}
+                        onClick={() => void handleRefund(item)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Refund
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant={owned ? 'outline' : 'primary'}
+                      size="sm"
+                      disabled={
+                        owned || !affordable || busyId !== null || refundingId !== null
+                      }
+                      loading={busyId === item.id}
+                      onClick={() => void handleBuy(item)}
+                    >
+                      {owned ? 'Owned' : affordable ? 'Buy' : 'Need more XP'}
+                    </Button>
+                  </div>
                 </div>
               </Card>
             );
@@ -185,7 +241,8 @@ export function ShopPage() {
       <p className="text-xs text-charcoal/45">
         Unlocks are permanent. The laptop is an in-room prop: buy it here, then press{' '}
         <kbd className="rounded bg-charcoal/5 px-1 font-mono">L</kbd> while hanging out to open or
-        close it. The kitten follows you into every room.
+        close it. The kitten follows you into every room. Refunds return the item and its full XP
+        price; money packs return their XP price and take back the money.
       </p>
     </div>
   );

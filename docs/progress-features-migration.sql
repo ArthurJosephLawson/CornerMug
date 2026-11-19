@@ -160,3 +160,88 @@ revoke all on function public.award_hangout(integer) from public;
 revoke all on function public.purchase_item(text) from public;
 grant execute on function public.award_hangout(integer) to authenticated;
 grant execute on function public.purchase_item(text) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 4. refund_item: every player can return a purchase for its XP price
+-- ---------------------------------------------------------------------------
+-- Unlock items (laptop, kitten) leave owned_items and return their XP price.
+-- Money packs take the money back and return the XP price. Buy then refund is
+-- net-neutral, so repeating it cannot mint XP.
+create or replace function public.refund_item(p_item text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_price  integer;
+  v_amount integer := 0;
+  v_unlock boolean := false;
+  v_row    public.users%rowtype;
+begin
+  if v_uid is null then
+    raise exception 'Not signed in';
+  end if;
+
+  if p_item = 'laptop' then
+    v_price := 500;
+    v_unlock := true;
+  elsif p_item = 'kitten' then
+    v_price := 350;
+    v_unlock := true;
+  elsif p_item = 'money-250' then
+    v_price := 100;
+    v_amount := 250;
+  elsif p_item = 'money-600' then
+    v_price := 200;
+    v_amount := 600;
+  elsif p_item = 'money-1500' then
+    v_price := 450;
+    v_amount := 1500;
+  else
+    raise exception 'Unknown item';
+  end if;
+
+  select * into v_row from public.users where id = v_uid for update;
+  if not found then
+    raise exception 'Profile not found';
+  end if;
+
+  if v_unlock then
+    if not (p_item = any (v_row.owned_items)) then
+      raise exception 'You do not own that item';
+    end if;
+
+    update public.users
+       set xp = xp + v_price,
+           owned_items = array_remove(owned_items, p_item),
+           last_seen_at = now()
+     where id = v_uid
+    returning * into v_row;
+  else
+    if v_row.money < v_amount then
+      raise exception 'You need % money to refund this pack', v_amount;
+    end if;
+
+    update public.users
+       set xp = xp + v_price,
+           money = money - v_amount,
+           last_seen_at = now()
+     where id = v_uid
+    returning * into v_row;
+  end if;
+
+  return jsonb_build_object(
+    'xp', v_row.xp,
+    'money', v_row.money,
+    'owned_items', to_jsonb(v_row.owned_items),
+    'refunded', v_price,
+    'deducted_money', v_amount,
+    'item', p_item
+  );
+end;
+$$;
+
+revoke all on function public.refund_item(text) from public;
+grant execute on function public.refund_item(text) to authenticated;
