@@ -32,6 +32,7 @@ export class PresenceTracker {
       username: signal.username,
       slug: signal.slug,
       xp: signal.xp ?? 0,
+      hasKitten: signal.hasKitten === true,
       x: existing?.x ?? 0,
       y: existing?.y ?? 0,
       direction: 'south' as Direction,

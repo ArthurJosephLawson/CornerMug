@@ -27,6 +27,7 @@ import type { RoomConnectionState } from '@/hooks/useRoomConnection';
 import { PRESENCE_BROADCAST_MS, PRESENCE_HEARTBEAT_MS } from '@/types/network.types';
 import type {
   CharacterSlug,
+  Direction,
   FrameRect,
   ParsedSpriteSheet,
   PlayerState,
@@ -40,6 +41,9 @@ interface RemoteAvatar {
   xp: number;
   sheet: ParsedSpriteSheet | null;
   animator: AnimationController | null;
+  /** Local follower state for this remote player's kitten. */
+  pet: { x: number; y: number; facing: number; moving: boolean; animMs: number };
+  hasKitten: boolean;
 }
 
 export interface GameCanvasProps {
@@ -195,9 +199,9 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       const localSheet = await loader.loadSheet(slug);
       if (disposed) return;
 
-      const kittenImage = ownsKittenRef.current
-        ? await loader.loadImage(PET_SHEET_URL).catch(() => null)
-        : null;
+      // The kitten sheet is always loaded. The local follower is optional, but
+      // other players' kittens must render even when this client never bought.
+      const kittenImage = await loader.loadImage(PET_SHEET_URL).catch(() => null);
       if (disposed) return;
 
       const sheets = new Map<CharacterSlug, ParsedSpriteSheet>([[slug, localSheet]]);
@@ -234,6 +238,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       let lastNearSeatId: string | null = null;
       let lastSeated = false;
       let laptopOpen = false;
+      let lastKittenState = ownsKittenRef.current;
       let lastBroadcastAt = 0;
       let lastPresenceJson = '';
       let lastHeartbeatAt = 0;
@@ -269,12 +274,40 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         username: player.state.username,
         slug: player.state.slug,
         xp: xpRef.current,
+        hasKitten: ownsKittenRef.current,
         x: Math.round(player.state.position.x),
         y: Math.round(player.state.position.y),
         direction: player.state.direction,
         moving: player.state.moving,
         seated: player.state.seated,
       });
+
+      const kittenTarget = (
+        state: { x: number; y: number },
+        direction: Direction,
+        seated: boolean,
+      ): { x: number; y: number } => {
+        const position = state;
+        let targetX = position.x - 24;
+        let targetY = position.y + 4;
+        if (seated) {
+          targetX = position.x + 24;
+          targetY = position.y + 6;
+        } else if (direction === 'east') {
+          targetX = position.x - 24;
+          targetY = position.y + 4;
+        } else if (direction === 'west') {
+          targetX = position.x + 24;
+          targetY = position.y + 4;
+        } else if (direction === 'north') {
+          targetX = position.x + 20;
+          targetY = position.y + 16;
+        } else {
+          targetX = position.x - 20;
+          targetY = position.y - 16;
+        }
+        return { x: targetX, y: targetY };
+      };
 
       const syncRemotes = () => {
         const peers = peersRef.current;
@@ -285,6 +318,11 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           seen.add(peer.id);
           let avatar = remotes.get(peer.id);
           if (!avatar) {
+            const target = kittenTarget(
+              { x: peer.x, y: peer.y },
+              peer.direction,
+              peer.seated,
+            );
             avatar = {
               player: new PlayerEntity({
                 id: peer.id,
@@ -300,10 +338,19 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
               xp: peer.xp ?? 0,
               sheet: sheets.get(peer.slug) ?? null,
               animator: null,
+              pet: {
+                x: target.x,
+                y: target.y,
+                facing: 1,
+                moving: false,
+                animMs: 0,
+              },
+              hasKitten: peer.hasKitten === true,
             };
             remotes.set(peer.id, avatar);
           }
           avatar.xp = peer.xp ?? 0;
+          avatar.hasKitten = peer.hasKitten === true;
 
           avatar.player.applyRemote({
             x: peer.x,
@@ -327,6 +374,23 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         }
       };
 
+      const moveKitten = (
+        kitten: { x: number; y: number; facing: number; moving: boolean; animMs: number },
+        targetX: number,
+        targetY: number,
+        deltaSeconds: number,
+      ) => {
+        const deltaX = targetX - kitten.x;
+        const deltaY = targetY - kitten.y;
+        const distance = Math.hypot(deltaX, deltaY);
+        const step = Math.min(1, deltaSeconds * 6);
+        kitten.x += deltaX * step;
+        kitten.y += deltaY * step;
+        kitten.moving = distance > 4;
+        if (Math.abs(deltaX) > 1) kitten.facing = deltaX > 0 ? 1 : -1;
+        kitten.animMs += deltaSeconds * 1000;
+      };
+
       const update = (deltaSeconds: number, _elapsedMs: number) => {
         const keyboard = input.getAxis();
         const touch = touchAxisRef.current;
@@ -340,36 +404,13 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         player.setInput(axisX, axisY);
         player.update(deltaSeconds, built.collision);
 
-        if (kittenImage) {
-          const position = player.state.position;
-          let targetX = position.x - 24;
-          let targetY = position.y + 4;
-          if (player.state.seated) {
-            targetX = position.x + 24;
-            targetY = position.y + 6;
-          } else if (player.state.direction === 'east') {
-            targetX = position.x - 24;
-            targetY = position.y + 4;
-          } else if (player.state.direction === 'west') {
-            targetX = position.x + 24;
-            targetY = position.y + 4;
-          } else if (player.state.direction === 'north') {
-            targetX = position.x + 20;
-            targetY = position.y + 16;
-          } else {
-            targetX = position.x - 20;
-            targetY = position.y - 16;
-          }
-
-          const deltaX = targetX - pet.x;
-          const deltaY = targetY - pet.y;
-          const distance = Math.hypot(deltaX, deltaY);
-          const step = Math.min(1, deltaSeconds * 6);
-          pet.x += deltaX * step;
-          pet.y += deltaY * step;
-          pet.moving = distance > 4;
-          if (Math.abs(deltaX) > 1) pet.facing = deltaX > 0 ? 1 : -1;
-          pet.animMs += deltaSeconds * 1000;
+        if (ownsKittenRef.current) {
+          const target = kittenTarget(
+            player.state.position,
+            player.state.direction,
+            player.state.seated,
+          );
+          moveKitten(pet, target.x, target.y, deltaSeconds);
         }
 
         if (input.consumeInteract() || interactRequestRef.current) {
@@ -405,10 +446,23 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
 
         syncRemotes();
 
+        for (const avatar of remotes.values()) {
+          if (!avatar.hasKitten) continue;
+          const state = avatar.player.state;
+          const target = kittenTarget(state.position, state.direction, state.seated);
+          moveKitten(avatar.pet, target.x, target.y, deltaSeconds);
+        }
+
         localAnimator.play(player.state.moving ? 'walk' : 'idle', player.state.direction);
         localAnimator.update(deltaSeconds * 1000);
         for (const avatar of remotes.values()) {
           avatar.animator?.update(deltaSeconds * 1000);
+        }
+
+        const hasKitten = ownsKittenRef.current;
+        if (hasKitten !== lastKittenState) {
+          lastKittenState = hasKitten;
+          lastPresenceJson = '';
         }
 
         const now = performance.now();
@@ -526,7 +580,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           draw: () => drawSprite(localSheet, localAnimator.getCurrentFrame(), player.state.position),
         });
 
-        if (kittenImage) {
+        if (ownsKittenRef.current) {
           items.push({ groundY: pet.y, draw: drawKitten });
         }
 
@@ -540,6 +594,30 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         }
 
         for (const avatar of remotes.values()) {
+          if (avatar.hasKitten && kittenImage) {
+            const kitten = avatar.pet;
+            const row = kitten.moving ? (kitten.facing > 0 ? 1 : 2) : 0;
+            const frame = kitten.moving
+              ? Math.floor(kitten.animMs / 90) % 8
+              : Math.floor(kitten.animMs / 650) % 2;
+            items.push({
+              groundY: kitten.y,
+              draw: () => {
+                if (!kittenImage) return;
+                context.drawImage(
+                  kittenImage,
+                  frame * PET_CELL_SIZE,
+                  row * PET_CELL_SIZE,
+                  PET_CELL_SIZE,
+                  PET_CELL_SIZE,
+                  Math.round(kitten.x - PET_DRAW_SIZE / 2),
+                  Math.round(kitten.y - (PET_DRAW_SIZE * 25) / PET_CELL_SIZE),
+                  PET_DRAW_SIZE,
+                  PET_DRAW_SIZE,
+                );
+              },
+            });
+          }
           if (!avatar.sheet || !avatar.animator) continue;
           items.push({
             groundY: avatar.player.state.position.y,

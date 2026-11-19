@@ -146,6 +146,8 @@ export interface PresencePayload {
   slug: CharacterSlug;
   /** Total XP, used by other clients to draw the `Name [Rank]` tag. */
   xp?: number;
+  /** Kitten shop unlock. Other clients draw a follower for this player. */
+  hasKitten?: boolean;
   x: number;
   y: number;
   direction: Direction;
@@ -158,6 +160,7 @@ export interface JoinSignal {
   username: string;
   slug: CharacterSlug;
   xp?: number;
+  hasKitten?: boolean;
 }
 
 export interface LeaveSignal {
