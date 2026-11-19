@@ -24,16 +24,23 @@ export interface AdminGrantResult {
   granted_item: string | null;
 }
 
+const ADMIN_COLUMNS =
+  'id, email, username, avatar_slug, is_admin, is_owner, last_seen_at, created_at, xp, money, owned_items';
+
 export async function listUsers(): Promise<AdminUserRow[]> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const run = (columns: string) =>
+    supabase.from('users').select(columns).order('created_at', { ascending: false });
+
+  let { data, error } = await run(ADMIN_COLUMNS);
+  // Before the admin migration adds is_owner, fall back to a wildcard read.
+  if (error?.code === '42703') {
+    ({ data, error } = await run('*'));
+  }
 
   if (error) {
     throw new Error(error.message);
   }
-  return (data ?? []) as AdminUserRow[];
+  return (data ?? []) as unknown as AdminUserRow[];
 }
 
 export async function removeUser(userId: string): Promise<void> {

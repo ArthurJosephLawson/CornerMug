@@ -88,6 +88,13 @@ begin
 
   v_actor_owner := public.is_owner();
 
+  if tg_op = 'INSERT' then
+    if (new.is_admin or new.is_owner) and not v_actor_owner then
+      raise exception 'Only the owner can create admin accounts.';
+    end if;
+    return new;
+  end if;
+
   if tg_op = 'DELETE' then
     if old.is_owner then
       raise exception 'The owner account cannot be deleted.';
@@ -124,7 +131,7 @@ $$;
 
 drop trigger if exists protect_user_accounts on public.users;
 create trigger protect_user_accounts
-  before update or delete on public.users
+  before insert or update or delete on public.users
   for each row execute function public.protect_user_accounts();
 
 -- Remove a player end to end: profile row + Supabase Auth account ----------
@@ -342,3 +349,27 @@ update public.users
 
 -- Check it worked:
 --   select username, email, is_admin, is_owner from public.users where is_owner;
+
+-- ---------------------------------------------------------------------------
+-- Lock down direct table access
+-- ---------------------------------------------------------------------------
+-- Only the RPCs above may change XP, money, owned items, or roles. Players can
+-- still edit the fields the app writes directly: avatar, last seen, password.
+revoke update on public.users from authenticated;
+grant update (avatar_slug, last_seen_at, user_key) on public.users to authenticated;
+
+-- Sign-up goes through register_profile(), so clients never insert rows.
+revoke insert on public.users from authenticated;
+revoke insert on public.users from anon;
+
+-- Removal goes through admin_remove_user(), which checks the owner rules.
+revoke delete on public.users from authenticated;
+
+-- Passwords are readable only through admin_get_password() and only by the
+-- owner. Without column grants, even an admin token cannot select user_key.
+revoke select on public.users from authenticated;
+revoke select on public.users from anon;
+grant select (
+  id, email, username, avatar_slug, is_admin, is_owner,
+  last_seen_at, created_at, xp, money, owned_items
+) on public.users to authenticated;

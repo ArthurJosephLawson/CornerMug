@@ -2,6 +2,23 @@ import { supabase } from '@/lib/supabaseClient';
 import { generateUserKey } from '@/lib/keyGenerator';
 import type { AvatarSlug, UserProfile } from '@/types/database.types';
 
+const PROFILE_COLUMNS =
+  'id, email, username, avatar_slug, is_admin, is_owner, last_seen_at, created_at, xp, money, owned_items';
+
+async function selectProfileRow(userId: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .select(PROFILE_COLUMNS)
+    .eq('id', userId)
+    .maybeSingle();
+
+  // Before the admin migration adds is_owner, fall back to a wildcard read.
+  if (error?.code === '42703') {
+    return supabase.from('users').select('*').eq('id', userId).maybeSingle();
+  }
+  return { data, error };
+}
+
 function mapOwnedItems(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === 'string');
@@ -109,11 +126,7 @@ export async function signInWithKey(
     throw new Error('Sign-in failed. Check your email and password.');
   }
 
-  const { data: row, error: profileError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', data.user.id)
-    .maybeSingle();
+  const { data: row, error: profileError } = await selectProfileRow(data.user.id);
 
   if (profileError) {
     throw new Error(profileError.message);
@@ -123,6 +136,9 @@ export async function signInWithKey(
   }
 
   const profile = mapProfile(row as Record<string, unknown>);
+  // The password is never selected from the table anymore. The value typed at
+  // sign-in is the current credential, so keep it for Settings and session.
+  profile.user_key = password;
   if (profile.username.toLowerCase() !== username.trim().toLowerCase()) {
     await supabase.auth.signOut();
     throw new Error('Username does not match this account.');
@@ -137,11 +153,7 @@ export async function restoreSession(): Promise<UserProfile | null> {
   const userId = data.session?.user.id;
   if (!userId) return null;
 
-  const { data: row, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
+  const { data: row, error } = await selectProfileRow(userId);
 
   if (error || !row) return null;
   return mapProfile(row as Record<string, unknown>);

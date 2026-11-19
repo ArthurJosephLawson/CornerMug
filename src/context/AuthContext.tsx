@@ -59,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         const restored = await authService.restoreSession();
         if (cancelled) return;
-        setProfile(restored);
+        // user_key is no longer readable from the users table, so reuse the
+        // copy saved in this browser's session.
+        setProfile(restored ? { ...restored, user_key: stored.userKey } : null);
       } catch {
         clearSession();
       } finally {
