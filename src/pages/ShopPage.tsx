@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Coins, Laptop, ShoppingBag, Sparkles } from 'lucide-react';
+import { Cat, Check, Coins, Laptop, ShoppingBag, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/hooks/useToast';
 import { rankProgressForXp } from '@/lib/ranks';
@@ -15,7 +15,7 @@ export function ShopPage() {
   if (!profile) return null;
 
   const progress = rankProgressForXp(profile.xp);
-  const ownedLaptop = profile.owned_items.includes('laptop');
+  const ownedItems = new Set(profile.owned_items);
 
   const handleBuy = async (item: ShopItem) => {
     if (busyId) return;
@@ -28,16 +28,18 @@ export function ShopPage() {
         owned_items: result.owned_items,
       });
       if (result.already_owned) {
-        showToast('You already own the laptop.', 'info');
+        showToast(`You already own the ${item.name.toLowerCase()}.`, 'info');
       } else if (item.kind === 'money') {
         showToast(`Added ${item.moneyAmount} money to your wallet.`, 'success');
+      } else if (item.id === 'kitten') {
+        showToast('Kitten adopted. It will follow you into every room.', 'success');
       } else {
         showToast('Laptop unlocked. Press L in a room to open it.', 'success');
       }
       setMigrationMissing(false);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Purchase failed.';
-      if (/function|schema cache|does not exist|Could not find/i.test(message)) {
+      if (/function|schema cache|does not exist|Could not find|Unknown item/i.test(message)) {
         setMigrationMissing(true);
         showToast('Shop is not ready yet: run the progress SQL migration first.', 'error');
       } else if (/Not enough XP/i.test(message)) {
@@ -126,9 +128,9 @@ export function ShopPage() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {SHOP_ITEMS.map((item) => {
-            const owned = item.id === 'laptop' && ownedLaptop;
+            const owned = item.kind === 'unlock' && ownedItems.has(item.id);
             const affordable = profile.xp >= item.priceXp;
-            const Icon = item.kind === 'unlock' ? Laptop : Coins;
+            const Icon = item.id === 'kitten' ? Cat : item.kind === 'unlock' ? Laptop : Coins;
             return (
               <Card
                 key={item.id}
@@ -181,9 +183,9 @@ export function ShopPage() {
       </section>
 
       <p className="text-xs text-charcoal/45">
-        The laptop is an in-room prop: buy it here, then press{' '}
+        Unlocks are permanent. The laptop is an in-room prop: buy it here, then press{' '}
         <kbd className="rounded bg-charcoal/5 px-1 font-mono">L</kbd> while hanging out to open or
-        close it.
+        close it. The kitten follows you into every room.
       </p>
     </div>
   );

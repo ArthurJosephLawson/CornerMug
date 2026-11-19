@@ -13,6 +13,9 @@ import { useIsTouchDevice } from '@/hooks/useIsTouchDevice';
 import {
   CHARACTER_PIVOT_X,
   CHARACTER_PIVOT_Y,
+  PET_CELL_SIZE,
+  PET_DRAW_SIZE,
+  PET_SHEET_URL,
   PROP_CELL_HEIGHT,
   PROP_CELL_WIDTH,
   PROP_PIVOT_X,
@@ -47,6 +50,8 @@ export interface GameCanvasProps {
   xp?: number;
   /** Shows the laptop prop after the shop unlock. */
   ownsLaptop?: boolean;
+  /** Adds the kitten follower after the shop unlock. */
+  ownsKitten?: boolean;
   connection: RoomConnectionState;
   onNearSeatChange?: (seat: SeatAnchor | null) => void;
   onSeatedChange?: (seated: boolean) => void;
@@ -81,6 +86,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
     slug,
     xp = 0,
     ownsLaptop = false,
+    ownsKitten = false,
     connection,
     onNearSeatChange,
     onSeatedChange,
@@ -101,6 +107,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   const laptopCallbackRef = useRef(onLaptopChange);
   const xpRef = useRef(xp);
   const ownsLaptopRef = useRef(ownsLaptop);
+  const ownsKittenRef = useRef(ownsKitten);
   const touchAxisRef = useRef<InputAxis>({ x: 0, y: 0 });
   const interactRequestRef = useRef(false);
   const laptopRequestRef = useRef(false);
@@ -141,6 +148,10 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   useEffect(() => {
     ownsLaptopRef.current = ownsLaptop;
   }, [ownsLaptop]);
+
+  useEffect(() => {
+    ownsKittenRef.current = ownsKitten;
+  }, [ownsKitten]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -184,6 +195,11 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       const localSheet = await loader.loadSheet(slug);
       if (disposed) return;
 
+      const kittenImage = ownsKittenRef.current
+        ? await loader.loadImage(PET_SHEET_URL).catch(() => null)
+        : null;
+      if (disposed) return;
+
       const sheets = new Map<CharacterSlug, ParsedSpriteSheet>([[slug, localSheet]]);
       const localAnimator = new AnimationController(localSheet);
       const player = new PlayerEntity({
@@ -208,6 +224,13 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       });
 
       const remotes = new Map<string, RemoteAvatar>();
+      const pet = {
+        x: definition.spawn.x - 24,
+        y: definition.spawn.y + 4,
+        facing: 1,
+        moving: false,
+        animMs: 0,
+      };
       let lastNearSeatId: string | null = null;
       let lastSeated = false;
       let laptopOpen = false;
@@ -316,6 +339,38 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         }
         player.setInput(axisX, axisY);
         player.update(deltaSeconds, built.collision);
+
+        if (kittenImage) {
+          const position = player.state.position;
+          let targetX = position.x - 24;
+          let targetY = position.y + 4;
+          if (player.state.seated) {
+            targetX = position.x + 24;
+            targetY = position.y + 6;
+          } else if (player.state.direction === 'east') {
+            targetX = position.x - 24;
+            targetY = position.y + 4;
+          } else if (player.state.direction === 'west') {
+            targetX = position.x + 24;
+            targetY = position.y + 4;
+          } else if (player.state.direction === 'north') {
+            targetX = position.x + 20;
+            targetY = position.y + 16;
+          } else {
+            targetX = position.x - 20;
+            targetY = position.y - 16;
+          }
+
+          const deltaX = targetX - pet.x;
+          const deltaY = targetY - pet.y;
+          const distance = Math.hypot(deltaX, deltaY);
+          const step = Math.min(1, deltaSeconds * 6);
+          pet.x += deltaX * step;
+          pet.y += deltaY * step;
+          pet.moving = distance > 4;
+          if (Math.abs(deltaX) > 1) pet.facing = deltaX > 0 ? 1 : -1;
+          pet.animMs += deltaSeconds * 1000;
+        }
 
         if (input.consumeInteract() || interactRequestRef.current) {
           interactRequestRef.current = false;
@@ -437,6 +492,25 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           );
         };
 
+        const drawKitten = () => {
+          if (!kittenImage) return;
+          const row = pet.moving ? (pet.facing > 0 ? 1 : 2) : 0;
+          const frame = pet.moving
+            ? Math.floor(pet.animMs / 90) % 8
+            : Math.floor(pet.animMs / 650) % 2;
+          context.drawImage(
+            kittenImage,
+            frame * PET_CELL_SIZE,
+            row * PET_CELL_SIZE,
+            PET_CELL_SIZE,
+            PET_CELL_SIZE,
+            Math.round(pet.x - PET_DRAW_SIZE / 2),
+            Math.round(pet.y - (PET_DRAW_SIZE * 25) / PET_CELL_SIZE),
+            PET_DRAW_SIZE,
+            PET_DRAW_SIZE,
+          );
+        };
+
         for (const prop of definition.props) {
           if (prop.name.startsWith('wall-') || prop.name === 'rug') drawProp(prop.name, prop.x, prop.y);
         }
@@ -451,6 +525,10 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           groundY: player.state.position.y,
           draw: () => drawSprite(localSheet, localAnimator.getCurrentFrame(), player.state.position),
         });
+
+        if (kittenImage) {
+          items.push({ groundY: pet.y, draw: drawKitten });
+        }
 
         if (laptopOpen) {
           // Sits just south of the player so it reads as "on the table in front".

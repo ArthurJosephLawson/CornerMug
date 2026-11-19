@@ -70,6 +70,7 @@ $$;
 -- 3. purchase_item: server-priced shop
 -- ---------------------------------------------------------------------------
 -- laptop      -> permanent unlock, 500 XP
+-- kitten      -> permanent unlock, 350 XP
 -- money-250   -> +250 money for 100 XP
 -- money-600   -> +600 money for 200 XP
 -- money-1500  -> +1500 money for 450 XP
@@ -93,6 +94,9 @@ begin
   if p_item = 'laptop' then
     v_price := 500;
     v_unlock := true;
+  elsif p_item = 'kitten' then
+    v_price := 350;
+    v_unlock := true;
   elsif p_item = 'money-250' then
     v_price := 100;
     v_amount := 250;
@@ -111,7 +115,7 @@ begin
     raise exception 'Profile not found';
   end if;
 
-  if p_item = 'laptop' and 'laptop' = any (v_row.owned_items) then
+  if v_unlock and p_item = any (v_row.owned_items) then
     return jsonb_build_object(
       'xp', v_row.xp,
       'money', v_row.money,

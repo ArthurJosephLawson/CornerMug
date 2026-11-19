@@ -24,6 +24,11 @@ export const WALK_FRAME_MS = 100;
 
 export const ANIMATION_DIRECTIONS: Direction[] = ['south', 'east', 'north', 'west'];
 
+/** Kitten follower sheet: row 0 idle, row 1 walk right, row 2 walk left. */
+export const PET_SHEET_URL = `${SPRITES_ROOT}/pets/kitten.png`;
+export const PET_CELL_SIZE = 32;
+export const PET_DRAW_SIZE = 30;
+
 export interface CharacterConfig {
   slug: CharacterSlug;
   name: string;

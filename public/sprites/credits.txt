@@ -6,3 +6,5 @@ The selected Resident, Barista, Cook, Office Worker, Courier and Maintenance
 Worker PNGs are preserved at native resolution. Environment artwork and sample
 assembly are from the existing Modern Rooms & People project.
 https://happyhustle.itch.io/
+Kitten animations: Free 16x16 cat pack (orange tabby, gray and white variants).
+Laptop sprites: Pixor library laptop (CC0) - https://pixor.art/library/office/laptop/

@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 
-export type ShopItemId = 'laptop' | 'money-250' | 'money-600' | 'money-1500';
+export type ShopItemId = 'laptop' | 'kitten' | 'money-250' | 'money-600' | 'money-1500';
 
 export interface ProgressSnapshot {
   xp: number;
@@ -82,6 +82,13 @@ export const SHOP_ITEMS: ShopItem[] = [
     name: 'Laptop',
     description: 'A cosy little laptop for your table. Press L in a room to open or close it.',
     priceXp: 500,
+    kind: 'unlock',
+  },
+  {
+    id: 'kitten',
+    name: 'Kitten',
+    description: 'A tiny orange tabby that follows you around every room.',
+    priceXp: 350,
     kind: 'unlock',
   },
   {

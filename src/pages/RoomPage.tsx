@@ -59,6 +59,7 @@ export function RoomPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [laptopOpen, setLaptopOpen] = useState(false);
   const ownsLaptop = profile?.owned_items.includes('laptop') ?? false;
+  const ownsKitten = profile?.owned_items.includes('kitten') ?? false;
 
   const handleLaptopChange = useCallback((open: boolean) => setLaptopOpen(open), []);
   const toggleLaptop = useCallback(() => canvasRef.current?.toggleLaptop(), []);
@@ -278,6 +279,7 @@ export function RoomPage() {
             slug={profile.avatar_slug}
             xp={profile.xp}
             ownsLaptop={ownsLaptop}
+            ownsKitten={ownsKitten}
             connection={connection}
             onNearSeatChange={handleNearSeat}
             onSeatedChange={handleSeated}
@@ -464,6 +466,7 @@ export function RoomPage() {
           slug={profile.avatar_slug}
           xp={profile.xp}
           ownsLaptop={ownsLaptop}
+          ownsKitten={ownsKitten}
           connection={connection}
           onNearSeatChange={handleNearSeat}
           onSeatedChange={handleSeated}
