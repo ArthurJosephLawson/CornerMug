@@ -6,6 +6,11 @@ export interface StatsSnapshot {
   sessionsCompleted: number;
 }
 
+export interface DailyActivityPoint {
+  date: string; // YYYY-MM-DD
+  activeSeconds: number;
+}
+
 export const EMPTY_STATS: StatsSnapshot = {
   focusMinutes: 0,
   hangoutSeconds: 0,
@@ -62,4 +67,17 @@ export async function recordHangoutTime(userId: string, seconds: number): Promis
   };
   await upsertStats(userId, next);
   return next;
+}
+
+export async function fetchDailyActivity(days = 7): Promise<DailyActivityPoint[]> {
+  const { data, error } = await supabase.rpc('get_daily_activity', { p_days: days });
+  if (error) return [];
+  const rows = Array.isArray(data) ? data : [];
+  return rows.map((row) => {
+    const item = row as Record<string, unknown>;
+    return {
+      date: String(item.activity_date ?? item.date ?? ''),
+      activeSeconds: Number(item.active_seconds ?? item.seconds ?? 0),
+    };
+  });
 }

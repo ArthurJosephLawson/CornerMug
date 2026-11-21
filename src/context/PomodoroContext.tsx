@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/hooks/useToast';
+import { awardFocusSession } from '@/services/progressService';
 import { recordFocusSession } from '@/services/statsService';
 
 export type PomodoroMode = 'focus' | 'break';
@@ -98,7 +99,7 @@ const PomodoroContext = createContext<PomodoroTimerState | null>(null);
  * Focus completions are recorded here, independent of the current route.
  */
 export function PomodoroProvider({ children }: { children: ReactNode }) {
-  const { profile } = useAuth();
+  const { profile, applyProgress } = useAuth();
   const [timer, setTimer] = useState<StoredTimer>(initialTimer);
   const recordedSessionsRef = useRef(timer.completedFocusSessions);
   const profileId = profile?.id ?? '';
@@ -139,10 +140,21 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     if (timer.completedFocusSessions <= recordedSessionsRef.current) return;
     recordedSessionsRef.current = timer.completedFocusSessions;
     if (!profileId) return;
-    void recordFocusSession(profileId, FOCUS_MINUTES)
-      .then(() => showToast(`Focus session saved: ${FOCUS_MINUTES} minutes.`, 'success'))
-      .catch(() => showToast('Focus finished, but study stats could not be saved yet.', 'error'));
-  }, [timer.completedFocusSessions, profileId]);
+    void awardFocusSession(FOCUS_MINUTES)
+      .then((result) => {
+        applyProgress({
+          xp: result.xp,
+          money: result.money,
+          owned_items: result.owned_items,
+        });
+        showToast(`Focus complete: +${result.gained || 500} XP.`, 'success');
+      })
+      .catch(() => {
+        void recordFocusSession(profileId, FOCUS_MINUTES)
+          .then(() => showToast(`Focus session saved: ${FOCUS_MINUTES} minutes.`, 'success'))
+          .catch(() => showToast('Focus finished, but progress could not be saved yet.', 'error'));
+      });
+  }, [timer.completedFocusSessions, profileId, applyProgress]);
 
   const start = useCallback(() => {
     setTimer((current) => {

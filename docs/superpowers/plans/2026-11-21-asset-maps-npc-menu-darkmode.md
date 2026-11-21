@@ -324,20 +324,20 @@
 - Produces: `award_focus_session` RPC (name final) grants +500 XP once per completed focus session and updates relevant stats; client syncs returned progress.
 - Produces: `user_activity_daily` storage and upsert/read RPCs (or direct table ops with RLS) for last 7 days; hangout flush updates daily seconds without double counting totals.
 
-- [ ] **Step 1: Add focus award RPC call**
+- [x] **Step 1: Add focus award RPC call**
   - In `PomodoroContext`, on completed focus session increment, call server award RPC, `applyProgress` from returned snapshot, keep existing local stats/toast behavior coherent.
 
-- [ ] **Step 2: Add daily activity service functions**
+- [x] **Step 2: Add daily activity service functions**
   - Implement `fetchDailyActivity(userId, days=7)` and integration point to record seconds on hangout flush (prefer server-side accumulation in RPC).
 
-- [ ] **Step 3: Write SQL/migration docs**
+- [x] **Step 3: Write SQL/migration docs**
   - Create/extend migration with table, indexes, RLS, grants, and RPCs; document run order.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add src/context/PomodoroContext.tsx src/services src/context/AuthContext.tsx src/hooks src/pages/RoomPage.tsx docs`
   - `git commit -m "feat(progress): award focus XP and track daily activity"`
 

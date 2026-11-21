@@ -71,6 +71,17 @@ export async function awardHangout(seconds: number): Promise<AwardResult> {
   };
 }
 
+/** Award +500 XP for a completed focus session (server-authoritative). */
+export async function awardFocusSession(minutes = 25): Promise<ProgressSnapshot & { gained: number }> {
+  const { data, error } = await supabase.rpc('award_focus_session', {
+    p_minutes: Math.max(1, Math.round(minutes)),
+  });
+  if (error) throw new Error(error.message);
+  const progress = parseProgress(data);
+  const row = (data ?? {}) as Record<string, unknown>;
+  return { ...progress, gained: Number(row.gained ?? 500) };
+}
+
 /** Buy a shop/menu item. Prices and currency are validated inside the RPC. */
 export async function purchaseItem(item: ShopItemId): Promise<PurchaseResult> {
   const { data, error } = await supabase.rpc('purchase_item', { p_item: item });

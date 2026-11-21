@@ -32,7 +32,28 @@ update public.users
  where 'laptop' = any (owned_items);
 
 -- ---------------------------------------------------------------------------
--- 2. award_hangout: XP for time spent in rooms
+-- 2. Daily activity tracking (last 7 days chart)
+-- ---------------------------------------------------------------------------
+create table if not exists public.user_activity_daily (
+  user_id uuid not null references public.users(id) on delete cascade,
+  activity_date date not null,
+  active_seconds integer not null default 0 check (active_seconds >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, activity_date)
+);
+
+alter table public.user_activity_daily enable row level security;
+
+drop policy if exists "user_activity_daily_select_own" on public.user_activity_daily;
+create policy "user_activity_daily_select_own"
+  on public.user_activity_daily for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+-- Writes happen through security definer RPCs only.
+
+-- ---------------------------------------------------------------------------
+-- 3. award_hangout: XP for time spent in rooms + daily activity
 -- ---------------------------------------------------------------------------
 -- 12 XP per minute = 1 XP per 5 seconds. The server decides the amount so the
 -- browser cannot claim arbitrary XP. Awarded time is capped at 10 minutes per
@@ -47,6 +68,7 @@ declare
   v_uid     uuid := auth.uid();
   v_seconds integer := greatest(0, least(coalesce(p_seconds, 0), 600));
   v_gained  integer := v_seconds / 5;
+  v_today   date := (now() at time zone 'utc')::date;
   v_row     public.users%rowtype;
 begin
   if v_uid is null then
@@ -69,6 +91,12 @@ begin
     set hangout_seconds = public.user_stats.hangout_seconds + excluded.hangout_seconds,
         updated_at = now();
 
+  insert into public.user_activity_daily (user_id, activity_date, active_seconds, updated_at)
+  values (v_uid, v_today, v_seconds, now())
+  on conflict (user_id, activity_date) do update
+    set active_seconds = public.user_activity_daily.active_seconds + excluded.active_seconds,
+        updated_at = now();
+
   return jsonb_build_object(
     'xp', v_row.xp,
     'money', v_row.money,
@@ -80,7 +108,7 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 3. purchase_item: server-priced shop/menu
+-- 4. purchase_item: server-priced shop/menu
 -- ---------------------------------------------------------------------------
 -- kitten                    -> permanent unlock, 350 XP
 -- dessert-cheesecake        -> permanent unlock, 200 money
@@ -188,7 +216,7 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 4. refund_item: return purchases (XP/money depending on item type)
+-- 5. refund_item: return purchases (XP/money depending on item type)
 -- ---------------------------------------------------------------------------
 -- XP unlocks (kitten)      -> remove item, refund XP.
 -- Money unlocks (desserts) -> remove item, refund money.
@@ -301,10 +329,85 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- 6. award_focus_session: +500 XP per completed focus session
+-- ---------------------------------------------------------------------------
+create or replace function public.award_focus_session(p_minutes integer default 25)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_minutes integer := greatest(1, least(coalesce(p_minutes, 25), 180));
+  v_gained  integer := 500;
+  v_row     public.users%rowtype;
+begin
+  if v_uid is null then
+    raise exception 'Not signed in';
+  end if;
+
+  update public.users
+     set xp = xp + v_gained,
+         last_seen_at = now()
+   where id = v_uid
+  returning * into v_row;
+
+  if not found then
+    raise exception 'Profile not found';
+  end if;
+
+  insert into public.user_stats (user_id, focus_minutes, sessions_completed, updated_at)
+  values (v_uid, v_minutes, 1, now())
+  on conflict (user_id) do update
+    set focus_minutes = public.user_stats.focus_minutes + excluded.focus_minutes,
+        sessions_completed = public.user_stats.sessions_completed + 1,
+        updated_at = now();
+
+  return jsonb_build_object(
+    'xp', v_row.xp,
+    'money', v_row.money,
+    'owned_items', to_jsonb(v_row.owned_items),
+    'gained', v_gained
+  );
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 7. get_daily_activity: last N days for the signed-in user
+-- ---------------------------------------------------------------------------
+create or replace function public.get_daily_activity(p_days integer default 7)
+returns table (activity_date date, active_seconds integer)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with days as (
+    select generate_series(
+      ((now() at time zone 'utc')::date - (greatest(1, least(coalesce(p_days, 7), 31)) - 1)),
+      (now() at time zone 'utc')::date,
+      interval '1 day'
+    )::date as activity_date
+  )
+  select d.activity_date,
+         coalesce(a.active_seconds, 0)::integer as active_seconds
+    from days d
+    left join public.user_activity_daily a
+      on a.activity_date = d.activity_date
+     and a.user_id = auth.uid()
+   order by d.activity_date;
+$$;
+
 -- Only signed-in players may call these, and only as themselves (auth.uid()).
 revoke all on function public.award_hangout(integer) from public;
 revoke all on function public.purchase_item(text) from public;
 revoke all on function public.refund_item(text) from public;
+revoke all on function public.award_focus_session(integer) from public;
+revoke all on function public.get_daily_activity(integer) from public;
 grant execute on function public.award_hangout(integer) to authenticated;
 grant execute on function public.purchase_item(text) to authenticated;
 grant execute on function public.refund_item(text) to authenticated;
+grant execute on function public.award_focus_session(integer) to authenticated;
+grant execute on function public.get_daily_activity(integer) to authenticated;
