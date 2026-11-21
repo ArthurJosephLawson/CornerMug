@@ -7,7 +7,6 @@ Worker PNGs are preserved at native resolution. Environment artwork and sample
 assembly are from the existing Modern Rooms & People project.
 https://happyhustle.itch.io/
 Kitten animations: Free 16x16 cat pack (orange tabby, gray and white variants).
-Laptop sprites: Pixor library laptop (CC0) - https://pixor.art/library/office/laptop/
 Food & Drink 2D Mega Props Pack v1.0 by nacl1234 (Added_assets, copied to public/assets/added/fooddrink). AI-assisted artwork processed into transparent game assets. Licensed for embedded use in projects per pack LICENSE.txt.
 Dessert Icons pack (Added_assets/extracted/Dessert_Icons, copied to public/assets/added/desserts).
 Pixel 16 Interiors v2 Free (Added_assets/extracted/Pixel_16_interiors_v2_free, copied to public/assets/added/pixel-interiors).

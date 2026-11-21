@@ -151,25 +151,25 @@
 - Produces: `ShopItemId` has no `laptop`; no `L` key laptop toggle; no `ownsLaptop`/`onLaptopChange`/`toggleLaptop` props or state; no laptop purchase/refund UI copy.
 - Consumes: existing kitten/money behavior unchanged except catalog updates.
 
-- [ ] **Step 1: Remove laptop from catalog and services**
+- [x] **Step 1: Remove laptop from catalog and services**
   - Update `ShopItemId`, `SHOP_ITEMS`, and messages in `src/services/progressService.ts` and `src/pages/ShopPage.tsx`.
 
-- [ ] **Step 2: Remove laptop controls and rendering**
+- [x] **Step 2: Remove laptop controls and rendering**
   - Delete laptop state/handlers/UI in `RoomPage.tsx`.
   - Remove laptop refs, props, prop preloading, key handling, and draw logic in `GameCanvas.tsx`.
   - Remove `KeyL` handling and `consumeLaptopToggle`/queue in `InputController.ts`.
 
-- [ ] **Step 3: Remove laptop from admin/room content**
+- [x] **Step 3: Remove laptop from admin/room content**
   - Update terminal help and item handling in `AdminTerminal.tsx`.
   - Remove `computer` prop placements from `rooms.config.ts` if they represent the removed laptop feature (replace with approved decor only if needed to keep layout coherent, using existing/approved assets).
 
-- [ ] **Step 4: Sweep and verify**
+- [x] **Step 4: Sweep and verify**
   - Run: `rg -n "\blaptop\b|Laptop|toggleLaptop|ownsLaptop|consumeLaptopToggle|KeyL" src`
   - Expected: no runtime feature matches (docs/migrations handled later).
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add src public/sprites/credits.txt`
   - `git commit -m "feat(shop): remove laptop feature and runtime references"`
 

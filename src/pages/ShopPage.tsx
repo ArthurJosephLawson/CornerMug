@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Cat, Check, Coins, Laptop, RotateCcw, ShoppingBag, Sparkles } from 'lucide-react';
+import { Cat, Check, Coins, RotateCcw, ShoppingBag, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/hooks/useToast';
 import { rankProgressForXp } from '@/lib/ranks';
@@ -40,7 +40,7 @@ export function ShopPage() {
       } else if (item.id === 'kitten') {
         showToast('Kitten adopted. It will follow you into every room.', 'success');
       } else {
-        showToast('Laptop unlocked. Press L in a room to open it.', 'success');
+        showToast(`${item.name} unlocked.`, 'success');
       }
       setMigrationMissing(false);
     } catch (caught) {
@@ -167,7 +167,7 @@ export function ShopPage() {
             const affordable = profile.xp >= item.priceXp;
             const refundable =
               item.kind === 'unlock' ? owned : profile.money >= (item.moneyAmount ?? 0);
-            const Icon = item.id === 'kitten' ? Cat : item.kind === 'unlock' ? Laptop : Coins;
+            const Icon = item.id === 'kitten' ? Cat : Coins;
             return (
               <Card
                 key={item.id}
@@ -235,11 +235,9 @@ export function ShopPage() {
         </div>
       </section>
 
-      <p className="text-xs text-charcoal/45">
-        Unlocks are permanent. The laptop is an in-room prop: buy it here, then press{' '}
-        <kbd className="rounded bg-charcoal/5 px-1 font-mono">L</kbd> while hanging out to open or
-        close it. The kitten follows you into every room. Refunds return the item and its full XP
-        price; money packs return their XP price and take back the money.
+      <p className="text-xs text-charcoal/45 dark:text-white/45">
+        Unlocks are permanent. The kitten follows you into every room. Refunds return the item and
+        its full XP price; money packs return their XP price and take back the money.
       </p>
     </div>
   );

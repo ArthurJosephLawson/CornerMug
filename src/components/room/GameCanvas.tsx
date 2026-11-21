@@ -52,14 +52,11 @@ export interface GameCanvasProps {
   username: string;
   slug: CharacterSlug;
   xp?: number;
-  /** Shows the laptop prop after the shop unlock. */
-  ownsLaptop?: boolean;
   /** Adds the kitten follower after the shop unlock. */
   ownsKitten?: boolean;
   connection: RoomConnectionState;
   onNearSeatChange?: (seat: SeatAnchor | null) => void;
   onSeatedChange?: (seated: boolean) => void;
-  onLaptopChange?: (open: boolean) => void;
   className?: string;
   /** Full-bleed presentation for the phone game mode (no rounded card). */
   fullscreen?: boolean;
@@ -72,8 +69,6 @@ export interface GameCanvasProps {
 export interface GameCanvasHandle {
   /** Sit / stand toggle, shared by the E key, the seat badge and touch. */
   toggleSeat: () => void;
-  /** Open / close the laptop, shared by the L key and the phone menu. */
-  toggleLaptop: () => void;
 }
 
 /**
@@ -89,12 +84,10 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
     username,
     slug,
     xp = 0,
-    ownsLaptop = false,
     ownsKitten = false,
     connection,
     onNearSeatChange,
     onSeatedChange,
-    onLaptopChange,
     className = '',
     fullscreen = false,
     phoneViewport = false,
@@ -108,22 +101,16 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   const peersRef = useRef<NetworkPeer[]>(connection.peers);
   const nearSeatCallbackRef = useRef(onNearSeatChange);
   const seatedCallbackRef = useRef(onSeatedChange);
-  const laptopCallbackRef = useRef(onLaptopChange);
   const xpRef = useRef(xp);
-  const ownsLaptopRef = useRef(ownsLaptop);
   const ownsKittenRef = useRef(ownsKitten);
   const touchAxisRef = useRef<InputAxis>({ x: 0, y: 0 });
   const interactRequestRef = useRef(false);
-  const laptopRequestRef = useRef(false);
 
   useImperativeHandle(
     ref,
     () => ({
       toggleSeat: () => {
         interactRequestRef.current = true;
-      },
-      toggleLaptop: () => {
-        laptopRequestRef.current = true;
       },
     }),
     [],
@@ -142,16 +129,8 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   }, [onSeatedChange]);
 
   useEffect(() => {
-    laptopCallbackRef.current = onLaptopChange;
-  }, [onLaptopChange]);
-
-  useEffect(() => {
     xpRef.current = xp;
   }, [xp]);
-
-  useEffect(() => {
-    ownsLaptopRef.current = ownsLaptop;
-  }, [ownsLaptop]);
 
   useEffect(() => {
     ownsKittenRef.current = ownsKitten;
@@ -187,7 +166,6 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
 
       const propImages = new Map<string, HTMLImageElement>();
       const propNames = new Set(definition.props.map((prop) => prop.name));
-      if (ownsLaptopRef.current) propNames.add('computer');
       await Promise.all(
         [...propNames].map(async (name) => {
           const image = await loader.loadPropImage(name);
@@ -237,7 +215,6 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       };
       let lastNearSeatId: string | null = null;
       let lastSeated = false;
-      let laptopOpen = false;
       let lastKittenState = ownsKittenRef.current;
       let lastBroadcastAt = 0;
       let lastPresenceJson = '';
@@ -423,16 +400,6 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           }
         }
 
-        if (input.consumeLaptopToggle() || laptopRequestRef.current) {
-          laptopRequestRef.current = false;
-          if (ownsLaptopRef.current) {
-            laptopOpen = !laptopOpen;
-            laptopCallbackRef.current?.(laptopOpen);
-          } else {
-            laptopCallbackRef.current?.(false);
-          }
-        }
-
         const nearSeat = player.state.seated ? null : nearestSeat();
         const nearSeatId = nearSeat?.id ?? null;
         if (nearSeatId !== lastNearSeatId) {
@@ -582,15 +549,6 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
 
         if (ownsKittenRef.current) {
           items.push({ groundY: pet.y, draw: drawKitten });
-        }
-
-        if (laptopOpen) {
-          // Sits just south of the player so it reads as "on the table in front".
-          const laptopY = player.state.position.y + 4;
-          items.push({
-            groundY: laptopY,
-            draw: () => drawProp('computer', player.state.position.x, laptopY),
-          });
         }
 
         for (const avatar of remotes.values()) {

@@ -4,7 +4,6 @@ import {
   Armchair,
   ArrowLeft,
   Copy,
-  Laptop,
   LogOut,
   Maximize2,
   Minimize2,
@@ -57,12 +56,7 @@ export function RoomPage() {
   const [hudMenuOpen, setHudMenuOpen] = useState(false);
   const [rotateDismissed, setRotateDismissed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [laptopOpen, setLaptopOpen] = useState(false);
-  const ownsLaptop = profile?.owned_items.includes('laptop') ?? false;
   const ownsKitten = profile?.owned_items.includes('kitten') ?? false;
-
-  const handleLaptopChange = useCallback((open: boolean) => setLaptopOpen(open), []);
-  const toggleLaptop = useCallback(() => canvasRef.current?.toggleLaptop(), []);
 
   const connection = useRoomConnection(
     roomId,
@@ -278,12 +272,10 @@ export function RoomPage() {
             username={profile.username}
             slug={profile.avatar_slug}
             xp={profile.xp}
-            ownsLaptop={ownsLaptop}
             ownsKitten={ownsKitten}
             connection={connection}
             onNearSeatChange={handleNearSeat}
             onSeatedChange={handleSeated}
-            onLaptopChange={handleLaptopChange}
             fullscreen
             phoneViewport
             joystickSize={140}
@@ -395,20 +387,6 @@ export function RoomPage() {
               <span className="ml-auto text-[11px] font-medium text-charcoal/45">more room</span>
             </button>
 
-            {ownsLaptop ? (
-              <button
-                type="button"
-                onClick={toggleLaptop}
-                className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold shadow-soft active:scale-[0.99]"
-              >
-                <Laptop className="h-4 w-4" />
-                {laptopOpen ? 'Close laptop' : 'Open laptop'}
-                <span className="ml-auto text-[11px] font-medium text-charcoal/45">
-                  {laptopOpen ? 'packing up' : 'get to work'}
-                </span>
-              </button>
-            ) : null}
-
             {!publicRoom ? (
               <button
                 type="button"
@@ -465,12 +443,10 @@ export function RoomPage() {
           username={profile.username}
           slug={profile.avatar_slug}
           xp={profile.xp}
-          ownsLaptop={ownsLaptop}
           ownsKitten={ownsKitten}
           connection={connection}
           onNearSeatChange={handleNearSeat}
           onSeatedChange={handleSeated}
-          onLaptopChange={handleLaptopChange}
           className="h-[60svh] min-h-[260px] w-full sm:h-[68svh]"
         />
 
@@ -512,20 +488,13 @@ export function RoomPage() {
         </div>
       </div>
 
-      <p className="text-xs text-charcoal/45">
+      <p className="text-xs text-charcoal/45 dark:text-white/45">
         {isTouchDevice ? (
           <>Left stick to walk · tap the chair prompt to sit · chat stays in the room.</>
         ) : (
           <>
             WASD or arrow keys to walk · <kbd className="rounded bg-charcoal/5 px-1 font-mono">E</kbd>{' '}
-            to sit
-            {ownsLaptop ? (
-              <>
-                {' '}· <kbd className="rounded bg-charcoal/5 px-1 font-mono">L</kbd> to open/close
-                your laptop
-              </>
-            ) : null}{' '}
-            · chat stays in the room.
+            to sit or interact · chat stays in the room.
           </>
         )}
       </p>
