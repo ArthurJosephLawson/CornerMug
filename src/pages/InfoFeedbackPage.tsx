@@ -31,8 +31,7 @@ const categoryLabel: Record<FeedbackCategory, string> = {
 };
 
 const linedPaper = {
-  backgroundImage:
-    'repeating-linear-gradient(to bottom, transparent 0px, transparent 27px, rgba(30, 30, 36, 0.08) 28px)',
+  backgroundColor: 'rgba(255, 255, 255, 0.35)',
 };
 
 function formatLetterDate(value: string): string {
@@ -117,10 +116,7 @@ export function InfoFeedbackPage() {
           style={{ backgroundColor: '#FFFCF3' }}
         >
           {/* Envelope top strip */}
-          <div
-            className="relative h-20 overflow-hidden border-b border-dashed border-charcoal/15"
-            style={{ background: 'linear-gradient(160deg, #F6F1FF 0%, #FFF6E5 100%)' }}
-          >
+          <div className="relative h-20 overflow-hidden border-b border-dashed border-charcoal/15 bg-[#f6f1ff] dark:bg-[#252334]">
             <div className="absolute inset-0" aria-hidden>
               <div className="absolute -left-6 top-4 h-24 w-24 rotate-45 border border-charcoal/10 bg-white/40" />
               <div className="absolute -right-8 -top-6 h-28 w-28 rounded-full border border-charcoal/10 bg-white/30" />

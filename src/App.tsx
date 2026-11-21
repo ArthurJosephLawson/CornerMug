@@ -31,8 +31,8 @@ function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ivory">
-        <div className="flex flex-col items-center gap-3 text-charcoal/60">
+      <div className="flex min-h-screen items-center justify-center bg-ivory text-charcoal dark:bg-[#14141a] dark:text-[#f4f1ea]">
+        <div className="flex flex-col items-center gap-3 text-charcoal/60 dark:text-white/60">
           <Coffee className="h-8 w-8 animate-pulse" />
           <p className="text-sm font-medium">Warming up your mug...</p>
         </div>

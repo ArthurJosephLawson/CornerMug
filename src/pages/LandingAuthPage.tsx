@@ -54,8 +54,8 @@ export function LandingAuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ivory px-4 py-8">
-      <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-charcoal/5 bg-white/70 shadow-card md:grid-cols-2">
+    <div className="flex min-h-screen items-center justify-center bg-ivory px-4 py-8 dark:bg-[#14141a]">
+      <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-charcoal/5 bg-white/70 shadow-card dark:border-white/10 dark:bg-[#1f1f29] md:grid-cols-2">
         <div className="flex flex-col justify-between gap-6 bg-charcoal p-8 text-ivory">
           <div>
             <div className="flex items-center gap-2 font-display text-xl font-bold">
@@ -91,14 +91,16 @@ export function LandingAuthPage() {
         </div>
 
         <div className="p-8">
-          <div className="flex rounded-full bg-charcoal/5 p-1 text-sm font-semibold">
+          <div className="flex rounded-full bg-charcoal/5 p-1 text-sm font-semibold dark:bg-white/10">
             {(['signin', 'signup'] as Mode[]).map((option) => (
               <button
                 key={option}
                 type="button"
                 onClick={() => switchMode(option)}
                 className={`flex-1 rounded-full px-3 py-1.5 transition-colors ${
-                  mode === option ? 'bg-white shadow-soft' : 'text-charcoal/55 hover:text-charcoal'
+                  mode === option
+                    ? 'bg-white shadow-soft dark:bg-white/15 dark:text-[#f4f1ea]'
+                    : 'text-charcoal/55 hover:text-charcoal dark:text-white/60 dark:hover:text-white'
                 }`}
               >
                 {option === 'signin' ? 'Sign in' : 'Create account'}
@@ -153,14 +155,14 @@ export function LandingAuthPage() {
                 }
               />
             ) : (
-              <p className="rounded-xl bg-butter/40 px-3 py-2 text-xs leading-relaxed text-charcoal/70">
+              <p className="rounded-xl bg-butter/40 px-3 py-2 text-xs leading-relaxed text-charcoal/70 dark:bg-butter/20 dark:text-[#f4f1ea]/80">
                 We generate a password for you. Keep it somewhere safe — it is how you sign back
                 in on other devices. You can replace it with your own password in Settings.
               </p>
             )}
 
             {error ? (
-              <p className="rounded-xl border border-pink-deep/30 bg-pink/30 px-3 py-2 text-xs font-medium text-charcoal">
+              <p className="rounded-xl border border-pink-deep/30 bg-pink/30 px-3 py-2 text-xs font-medium text-charcoal dark:text-[#f4f1ea]">
                 {error}
               </p>
             ) : null}

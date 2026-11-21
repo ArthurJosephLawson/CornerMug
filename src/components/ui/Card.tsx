@@ -20,7 +20,7 @@ export function Card({ tone = 'plain', className = '', children, style, ...rest 
   const background = tone === 'plain' ? undefined : `${toneHex[tone]}33`;
   return (
     <div
-      className={`rounded-2xl border border-charcoal/5 bg-white/70 p-5 shadow-soft ${className}`}
+      className={`rounded-2xl border border-charcoal/5 bg-white/70 p-5 shadow-soft dark:border-white/10 dark:bg-white/5 dark:shadow-none ${className}`}
       style={{ ...style, ...(background ? { backgroundColor: background } : {}) }}
       {...rest}
     >

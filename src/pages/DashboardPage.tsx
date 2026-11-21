@@ -36,9 +36,9 @@ export function DashboardPage() {
     <div className="space-y-6">
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/45">Welcome back</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/45 dark:text-white/45">Welcome back</p>
           <h1 className="mt-1 text-2xl font-bold">{profile?.username ?? 'Friend'}</h1>
-          <p className="mt-1 text-sm text-charcoal/55">
+          <p className="mt-1 text-sm text-charcoal/55 dark:text-white/60">
             Pick a spot, settle in, and let the focus happen.
           </p>
         </div>
@@ -73,7 +73,7 @@ export function DashboardPage() {
       <Card tone="lavender" className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-bold">Host your own quiet table</h3>
-          <p className="mt-1 text-sm text-charcoal/60">
+          <p className="mt-1 text-sm text-charcoal/60 dark:text-white/65">
             Generate a room key and share it with friends. Only people with the key can join.
           </p>
         </div>

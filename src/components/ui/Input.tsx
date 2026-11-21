@@ -17,22 +17,22 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div className="flex flex-col gap-1.5">
       {label ? (
-        <label htmlFor={inputId} className="text-xs font-semibold uppercase tracking-wide text-charcoal/60">
+        <label htmlFor={inputId} className="text-xs font-semibold uppercase tracking-wide text-charcoal/60 dark:text-white/60">
           {label}
         </label>
       ) : null}
       <div className="relative">
         {icon ? (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40 dark:text-white/40">
             {icon}
           </span>
         ) : null}
         <input
           ref={ref}
           id={inputId}
-          className={`w-full rounded-xl border bg-white/80 px-3 py-2.5 text-sm text-charcoal outline-none transition-colors placeholder:text-charcoal/35 focus:border-lavender focus:ring-2 focus:ring-lavender/40 ${
+          className={`w-full rounded-xl border bg-white/80 px-3 py-2.5 text-sm text-charcoal outline-none transition-colors placeholder:text-charcoal/35 focus:border-lavender focus:ring-2 focus:ring-lavender/40 dark:border-white/10 dark:bg-white/5 dark:text-[#f4f1ea] dark:placeholder:text-white/35 ${
             icon ? 'pl-9' : ''
-          } ${action ? 'pr-10' : ''} ${error ? 'border-pink-deep' : 'border-charcoal/10'} ${className}`}
+          } ${action ? 'pr-10' : ''} ${error ? 'border-pink-deep' : 'border-charcoal/10 dark:border-white/10'} ${className}`}
           {...rest}
         />
         {action ? (

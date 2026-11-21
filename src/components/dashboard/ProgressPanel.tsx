@@ -17,12 +17,7 @@ export function ProgressPanel({ xp, money }: ProgressPanelProps) {
   const { rank, next } = progress;
 
   return (
-    <Card
-      className="relative overflow-hidden border-white/60"
-      style={{
-        background: 'linear-gradient(135deg, #F6F1FF 0%, #FFF8EF 55%, #EFFAF3 100%)',
-      }}
-    >
+    <Card className="relative overflow-hidden border-white/60 bg-[#f6f1ff] dark:border-white/10 dark:bg-[#252334]">
       <div
         className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full opacity-40 blur-2xl"
         style={{ backgroundColor: rank.color }}
@@ -90,7 +85,7 @@ export function ProgressPanel({ xp, money }: ProgressPanelProps) {
               className="h-full rounded-full transition-[width] duration-700 ease-out"
               style={{
                 width: `${progress.percent}%`,
-                background: `linear-gradient(90deg, ${rank.color} 0%, ${rank.color} 40%, #FFFFFF 160%)`,
+                backgroundColor: rank.color,
                 boxShadow: `0 0 12px ${rank.color}99`,
               }}
             />

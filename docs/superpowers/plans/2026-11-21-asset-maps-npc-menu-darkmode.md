@@ -113,24 +113,24 @@
 **Interfaces:**
 - Produces: no `linear-gradient`, `bg-gradient`, `from-`, `via-`, `to-` in `src/**` and `tailwind.config.js`.
 
-- [ ] **Step 1: Replace known gradients**
+- [x] **Step 1: Replace known gradients**
   - `ShopPage.tsx`: remove hero `style={{ background: 'linear-gradient(...)' }}` and use flat themed class.
   - `InfoFeedbackPage.tsx`: replace paper/hero gradient styles with flat/pattern-free alternatives (CSS image patterns allowed only if not gradients; prefer flat).
   - `ProgressPanel.tsx`: replace card and bar gradients with solid colors using rank color.
 
-- [ ] **Step 2: Sweep and fix remaining gradients**
+- [x] **Step 2: Sweep and fix remaining gradients**
   - Run: `rg -n "linear-gradient|bg-gradient|from-|via-|to-" src tailwind.config.js`
   - Replace each match with flat equivalents.
 
-- [ ] **Step 3: Apply dark-mode-compatible utility classes**
+- [x] **Step 3: Apply dark-mode-compatible utility classes**
   - Update shared surfaces (`Card`, buttons, inputs, nav/layout, toasts if present) for light/dark contrast.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
   - Run: `rg -n "linear-gradient|bg-gradient|from-|via-|to-" src tailwind.config.js` (expect no matches)
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add src tailwind.config.js`
   - `git commit -m "style(ui): remove gradients and add dark mode coverage"`
 

@@ -27,11 +27,11 @@ export function ToastHost() {
             role="status"
           >
             <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-            <p className="flex-1 text-charcoal">{toast.message}</p>
+            <p className="flex-1 text-charcoal dark:text-[#f4f1ea]">{toast.message}</p>
             <button
               type="button"
               onClick={() => dismiss(toast.id)}
-              className="rounded-full p-0.5 text-charcoal/50 hover:text-charcoal"
+              className="rounded-full p-0.5 text-charcoal/50 hover:text-charcoal dark:text-white/60 dark:hover:text-white"
               aria-label="Dismiss notification"
             >
               <X className="h-3.5 w-3.5" />

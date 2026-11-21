@@ -9,11 +9,11 @@ export interface PageContainerProps {
 
 export function PageContainer({ children, bare = false }: PageContainerProps) {
   if (bare) {
-    return <div className="min-h-full bg-ivory">{children}</div>;
+    return <div className="min-h-full bg-ivory text-charcoal dark:bg-[#14141a] dark:text-[#f4f1ea]">{children}</div>;
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-ivory text-charcoal">
+    <div className="flex min-h-full flex-col bg-ivory text-charcoal dark:bg-[#14141a] dark:text-[#f4f1ea]">
       <Navbar />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
       <Footer />

@@ -14,11 +14,12 @@ const baseClasses =
   'inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-lavender disabled:opacity-50 disabled:pointer-events-none';
 
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-charcoal text-ivory hover:bg-charcoal-soft',
-  secondary: 'bg-lavender text-charcoal hover:bg-lavender-deep hover:text-ivory',
-  ghost: 'bg-transparent text-charcoal hover:bg-charcoal/5',
-  outline: 'border border-charcoal/15 bg-white/70 text-charcoal hover:border-charcoal/30',
-  danger: 'bg-pink/80 text-charcoal hover:bg-pink',
+  primary: 'bg-charcoal text-ivory hover:bg-charcoal-soft dark:bg-lavender dark:text-[#14141a] dark:hover:bg-lavender-deep',
+  secondary: 'bg-lavender text-charcoal hover:bg-lavender-deep hover:text-ivory dark:text-[#14141a]',
+  ghost: 'bg-transparent text-charcoal hover:bg-charcoal/5 dark:text-[#f4f1ea] dark:hover:bg-white/10',
+  outline:
+    'border border-charcoal/15 bg-white/70 text-charcoal hover:border-charcoal/30 dark:border-white/15 dark:bg-white/5 dark:text-[#f4f1ea] dark:hover:border-white/30',
+  danger: 'bg-pink/80 text-charcoal hover:bg-pink dark:text-[#14141a]',
 };
 
 const sizeClasses: Record<Size, string> = {

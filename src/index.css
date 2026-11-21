@@ -69,3 +69,23 @@ canvas {
   background: var(--lavender);
   color: var(--charcoal);
 }
+
+.dark .text-charcoal { color: #f4f1ea; }
+.dark .text-charcoal\/70 { color: rgba(244, 241, 234, 0.7); }
+.dark .text-charcoal\/60 { color: rgba(244, 241, 234, 0.6); }
+.dark .text-charcoal\/55 { color: rgba(244, 241, 234, 0.55); }
+.dark .text-charcoal\/50 { color: rgba(244, 241, 234, 0.5); }
+.dark .text-charcoal\/45 { color: rgba(244, 241, 234, 0.45); }
+.dark .text-charcoal\/40 { color: rgba(244, 241, 234, 0.4); }
+.dark .text-charcoal\/35 { color: rgba(244, 241, 234, 0.35); }
+.dark .bg-ivory { background-color: #14141a; }
+.dark .bg-ivory-deep { background-color: #1b1b24; }
+.dark .bg-white\/70 { background-color: rgba(255, 255, 255, 0.05); }
+.dark .bg-white\/80 { background-color: rgba(255, 255, 255, 0.08); }
+.dark .bg-white\/50 { background-color: rgba(255, 255, 255, 0.06); }
+.dark .bg-charcoal\/5 { background-color: rgba(255, 255, 255, 0.08); }
+.dark .border-charcoal\/5 { border-color: rgba(244, 241, 234, 0.08); }
+.dark .border-charcoal\/10 { border-color: rgba(244, 241, 234, 0.1); }
+.dark .border-charcoal\/15 { border-color: rgba(244, 241, 234, 0.15); }
+.dark .divide-charcoal\/5 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(244, 241, 234, 0.08); }
+.dark .divide-charcoal\/8 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(244, 241, 234, 0.12); }

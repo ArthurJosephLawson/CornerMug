@@ -112,10 +112,7 @@ export function ShopPage() {
         </div>
       </section>
 
-      <Card
-        className="overflow-hidden border-white/70"
-        style={{ background: 'linear-gradient(120deg, #F6F1FF 0%, #FFF8EF 100%)' }}
-      >
+      <Card className="overflow-hidden border-white/70 bg-[#f6f1ff] dark:border-white/10 dark:bg-[#252334]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span
