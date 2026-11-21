@@ -117,6 +117,10 @@ export interface CustomPropPlacement {
   height: number;
   anchorX: number;
   anchorY: number;
+  sx?: number;
+  sy?: number;
+  sw?: number;
+  sh?: number;
   collision?: CollisionBox | null;
   passable?: boolean;
   groundY?: number;

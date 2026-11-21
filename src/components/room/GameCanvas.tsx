@@ -622,13 +622,18 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         const drawCustomProp = (prop: NonNullable<typeof definition.customProps>[number]) => {
           const image = customPropImages.get(prop.id);
           if (!image) return;
-          context.drawImage(
-            image,
-            Math.round(prop.x - prop.anchorX),
-            Math.round(prop.y - prop.anchorY),
-            prop.width,
-            prop.height,
-          );
+          const dx = Math.round(prop.x - prop.anchorX);
+          const dy = Math.round(prop.y - prop.anchorY);
+          if (
+            typeof prop.sx === 'number' &&
+            typeof prop.sy === 'number' &&
+            typeof prop.sw === 'number' &&
+            typeof prop.sh === 'number'
+          ) {
+            context.drawImage(image, prop.sx, prop.sy, prop.sw, prop.sh, dx, dy, prop.width, prop.height);
+          } else {
+            context.drawImage(image, dx, dy, prop.width, prop.height);
+          }
         };
 
         const drawKitten = () => {

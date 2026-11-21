@@ -383,27 +383,27 @@
 **Interfaces:**
 - Produces: personal bedroom room definition/loader support for Pixel interiors source, dashboard entry, owner-only access with invite key/link join path, invite copy button in room.
 
-- [ ] **Step 1: Build bedroom room definition**
+- [x] **Step 1: Build bedroom room definition**
   - Compose fixed layout/collision/spawn from Pixel interiors sheet using custom image/tile support; map stable id helper (e.g. `bedroomRoomId(userId)`).
 
-- [ ] **Step 2: Add dashboard entry and routing behavior**
+- [x] **Step 2: Add dashboard entry and routing behavior**
   - “My Room” opens owner bedroom; handle loading/profile guard.
 
-- [ ] **Step 3: Implement invite/access data flow**
+- [x] **Step 3: Implement invite/access data flow**
   - Create/fetch bedroom access record and invite key (RPC/table) with RLS; copy invite URL containing room id + invite token/key params.
   - Validate access before allowing room connection for non-owners; show clear denial state/toast.
 
-- [ ] **Step 4: Add invite button UI**
+- [x] **Step 4: Add invite button UI**
   - Top-right in bedroom room view copies invite link.
 
-- [ ] **Step 5: Document SQL/migrations**
+- [x] **Step 5: Document SQL/migrations**
   - Provide exact schema/policies/RPC/grants and run steps.
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS (DB behavior requires migration)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
   - `git add src docs public/assets/added/pixel-interiors`
   - `git commit -m "feat(room): add personal bedroom with invite-based access"`
 

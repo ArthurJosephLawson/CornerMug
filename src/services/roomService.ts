@@ -87,3 +87,34 @@ export async function seedPublicRooms(): Promise<void> {
     );
   }
 }
+
+export interface BedroomInvite {
+  room_id: string;
+  invite_key: string;
+}
+
+export async function getOrCreateBedroomInvite(): Promise<BedroomInvite> {
+  const { data, error } = await supabase.rpc('get_or_create_bedroom_invite');
+  if (error) throw new Error(error.message);
+  const row = (data ?? {}) as Record<string, unknown>;
+  return {
+    room_id: String(row.room_id ?? ''),
+    invite_key: String(row.invite_key ?? ''),
+  };
+}
+
+export async function checkBedroomAccess(
+  roomId: string,
+  inviteKey?: string | null,
+): Promise<{ allowed: boolean; is_owner: boolean }> {
+  const { data, error } = await supabase.rpc('check_bedroom_access', {
+    p_room_id: roomId,
+    p_invite_key: inviteKey ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const row = (data ?? {}) as Record<string, unknown>;
+  return {
+    allowed: row.allowed === true,
+    is_owner: row.is_owner === true,
+  };
+}

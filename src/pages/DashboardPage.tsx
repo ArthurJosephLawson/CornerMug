@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { PUBLIC_ROOMS } from '@/config/rooms.config';
+import { PUBLIC_ROOMS, bedroomRoomId } from '@/config/rooms.config';
 import { useRoomOccupancy } from '@/hooks/useRoomOccupancy';
 import { listRooms } from '@/services/roomService';
 import {
@@ -97,17 +97,37 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <Card tone="lavender" className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="font-bold">Host your own quiet table</h3>
-          <p className="mt-1 text-sm text-charcoal/60 dark:text-white/65">
-            Generate a room key and share it with friends. Only people with the key can join.
-          </p>
-        </div>
-        <Button variant="primary" onClick={() => setModalOpen(true)}>
-          <Plus className="h-4 w-4" /> Create private room
-        </Button>
-      </Card>
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Card tone="butter" className="flex flex-col items-start gap-3">
+          <div>
+            <h3 className="font-bold">My Room</h3>
+            <p className="mt-1 text-sm text-charcoal/60 dark:text-white/65">
+              Your personal bedroom. Invite friends with a private link.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (!profile) return;
+              navigate(`/room/${bedroomRoomId(profile.id)}`);
+            }}
+          >
+            Enter My Room
+          </Button>
+        </Card>
+
+        <Card tone="lavender" className="flex flex-col items-start gap-3">
+          <div>
+            <h3 className="font-bold">Host your own quiet table</h3>
+            <p className="mt-1 text-sm text-charcoal/60 dark:text-white/65">
+              Generate a room key and share it with friends. Only people with the key can join.
+            </p>
+          </div>
+          <Button variant="primary" onClick={() => setModalOpen(true)}>
+            <Plus className="h-4 w-4" /> Create private room
+          </Button>
+        </Card>
+      </section>
 
       <PrivateRoomModal
         open={modalOpen}

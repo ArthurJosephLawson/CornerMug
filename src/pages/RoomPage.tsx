@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Armchair,
   ArrowLeft,
   Copy,
+  Link2,
   LogOut,
   Maximize2,
   MessageCircle,
@@ -19,10 +20,16 @@ import { usePhoneViewport } from '@/hooks/usePhoneViewport';
 import { usePomodoro } from '@/context/PomodoroContext';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { showToast } from '@/hooks/useToast';
+import { checkBedroomAccess, getOrCreateBedroomInvite } from '@/services/roomService';
 import { recordHangoutTime } from '@/services/statsService';
 import { MENU_ITEMS, awardHangout, purchaseItem } from '@/services/progressService';
 import { rankForXp } from '@/lib/ranks';
-import { isPublicRoom, resolveRoomDefinition } from '@/config/rooms.config';
+import {
+  bedroomOwnerId,
+  isBedroomRoom,
+  isPublicRoom,
+  resolveRoomDefinition,
+} from '@/config/rooms.config';
 import { ROOM_CAPACITY, baseRoomId } from '@/types/network.types';
 import type { SeatAnchor } from '@/types/engine.types';
 import { AmbientMixer } from '@/components/room/AmbientMixer';
@@ -46,6 +53,7 @@ const NPC_MENU_ITEMS: NpcMenuItem[] = MENU_ITEMS.map((item) => ({
 
 export function RoomPage() {
   const { roomId = '' } = useParams();
+  const [searchParams] = useSearchParams();
   const { profile, applyProgress } = useAuth();
   const navigate = useNavigate();
   const isTouchDevice = useIsTouchDevice();
@@ -53,6 +61,9 @@ export function RoomPage() {
 
   const baseId = baseRoomId(roomId);
   const publicRoom = isPublicRoom(baseId);
+  const bedroomRoom = isBedroomRoom(baseId);
+  const bedroomOwner = bedroomOwnerId(baseId);
+  const isBedroomOwner = Boolean(bedroomRoom && profile && bedroomOwner === profile.id);
   const definition = resolveRoomDefinition(baseId);
 
   const canvasRef = useRef<GameCanvasHandle | null>(null);
@@ -62,6 +73,10 @@ export function RoomPage() {
   const [menuNpc, setMenuNpc] = useState<NearbyNpcState | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [menuBusyId, setMenuBusyId] = useState<string | null>(null);
+  const [accessState, setAccessState] = useState<'checking' | 'allowed' | 'denied'>(
+    bedroomRoom && !isBedroomOwner ? 'checking' : 'allowed',
+  );
+  const [inviteBusy, setInviteBusy] = useState(false);
   const handleNearSeat = useCallback((seat: SeatAnchor | null) => setNearSeat(seat), []);
   const handleSeated = useCallback((next: boolean) => setSeated(next), []);
   const handleNearbyNpc = useCallback((npc: NearbyNpcState | null) => setNearbyNpc(npc), []);
@@ -76,13 +91,59 @@ export function RoomPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const ownsKitten = profile?.owned_items.includes('kitten') ?? false;
 
+  useEffect(() => {
+    if (!bedroomRoom) {
+      setAccessState('allowed');
+      return;
+    }
+    if (isBedroomOwner) {
+      setAccessState('allowed');
+      return;
+    }
+    let cancelled = false;
+    const invite = searchParams.get('invite');
+    setAccessState('checking');
+    void checkBedroomAccess(baseId, invite)
+      .then((result) => {
+        if (cancelled) return;
+        setAccessState(result.allowed ? 'allowed' : 'denied');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAccessState(invite ? 'denied' : 'denied');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bedroomRoom, isBedroomOwner, baseId, searchParams]);
+
   const connection = useRoomConnection(
-    roomId,
+    accessState === 'allowed' ? roomId : '',
     profile?.id ?? '',
     profile?.username ?? '',
     profile?.avatar_slug ?? 'resident',
     { capacity: ROOM_CAPACITY, shard: publicRoom },
   );
+
+  const copyBedroomInvite = useCallback(async () => {
+    if (inviteBusy) return;
+    setInviteBusy(true);
+    try {
+      const invite = await getOrCreateBedroomInvite();
+      const link = `${window.location.origin}/room/${invite.room_id}?invite=${encodeURIComponent(invite.invite_key)}`;
+      await navigator.clipboard.writeText(link);
+      showToast('Invite link copied.', 'success');
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Could not create invite link.';
+      if (/function|schema cache|does not exist|Could not find/i.test(message)) {
+        showToast('Bedroom invites need the bedroom SQL migration.', 'error');
+      } else {
+        showToast(message, 'error');
+      }
+    } finally {
+      setInviteBusy(false);
+    }
+  }, [inviteBusy]);
 
   const pomodoro = usePomodoro();
 
@@ -246,6 +307,35 @@ export function RoomPage() {
 
   if (!profile) return null;
 
+  if (bedroomRoom && accessState === 'checking') {
+    return (
+      <div className="space-y-4">
+        <RoomTopBar roomName="My Room" occupantCount={0} connected={false} onLeave={() => navigate('/')} />
+        <Card className="flex flex-col items-center gap-3 py-14 text-center">
+          <p className="text-sm text-charcoal/60 dark:text-white/60">Checking room access...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (bedroomRoom && accessState === 'denied') {
+    return (
+      <div className="space-y-4">
+        <RoomTopBar roomName="My Room" occupantCount={0} connected={false} onLeave={() => navigate('/')} />
+        <Card className="flex flex-col items-center gap-3 py-14 text-center">
+          <Users className="h-10 w-10 text-charcoal/25" />
+          <div>
+            <p className="text-lg font-bold">This room is private</p>
+            <p className="mt-1 max-w-sm text-sm text-charcoal/55 dark:text-white/60">
+              You need the owner&apos;s invite link to enter this bedroom.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={() => navigate('/')}>Back to dashboard</Button>
+        </Card>
+      </div>
+    );
+  }
+
   if (connection.roomFull) {
     return (
       <div className="space-y-4">
@@ -310,6 +400,17 @@ export function RoomPage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
+            {isBedroomOwner ? (
+              <button
+                type="button"
+                onClick={() => void copyBedroomInvite()}
+                disabled={inviteBusy}
+                className="flex h-10 items-center gap-1.5 rounded-xl bg-lavender/30 px-3 text-[11px] font-bold text-lavender active:bg-lavender/40 disabled:opacity-50"
+                aria-label="Copy invite link"
+              >
+                <Link2 className="h-4 w-4" /> Invite
+              </button>
+            ) : null}
             <AmbientMixer compact />
             <div className="hidden min-[360px]:block">
               <PomodoroWidget timer={pomodoro} compact />
@@ -489,7 +590,17 @@ export function RoomPage() {
               <span className="ml-auto text-[11px] font-medium text-charcoal/45">more room</span>
             </button>
 
-            {!publicRoom ? (
+            {isBedroomOwner ? (
+              <button
+                type="button"
+                onClick={() => void copyBedroomInvite()}
+                className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-semibold shadow-soft active:scale-[0.99]"
+              >
+                <Link2 className="h-4 w-4" />
+                Copy invite link
+                <span className="ml-auto text-[11px] font-medium text-charcoal/45">share access</span>
+              </button>
+            ) : !publicRoom && !bedroomRoom ? (
               <button
                 type="button"
                 onClick={() => void copyRoomKey()}
@@ -529,12 +640,17 @@ export function RoomPage() {
     <div className="space-y-4">
       <RoomTopBar
         roomName={definition.name}
-        roomKey={publicRoom ? null : roomId}
+        roomKey={publicRoom || bedroomRoom ? null : roomId}
         occupantCount={occupants}
         capacity={ROOM_CAPACITY}
         tableNumber={publicRoom ? connection.shardNumber : undefined}
         connected={connection.connected}
         onLeave={() => navigate('/')}
+        inviteAction={
+          isBedroomOwner
+            ? { label: inviteBusy ? 'Copying...' : 'Invite', onClick: () => void copyBedroomInvite(), busy: inviteBusy }
+            : undefined
+        }
       />
 
       <div className="relative">

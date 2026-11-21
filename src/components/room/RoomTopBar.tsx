@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, Users, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Copy, Link2, Users, Wifi, WifiOff } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { showToast } from '@/hooks/useToast';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +13,12 @@ export interface RoomTopBarProps {
   tableNumber?: number;
   connected: boolean;
   onLeave: () => void;
+  /** Optional invite action for personal rooms (owner only). */
+  inviteAction?: {
+    label: string;
+    onClick: () => void;
+    busy?: boolean;
+  };
 }
 
 export function RoomTopBar({
@@ -23,6 +29,7 @@ export function RoomTopBar({
   tableNumber,
   connected,
   onLeave,
+  inviteAction,
 }: RoomTopBarProps) {
   const { settings } = useSettings();
 
@@ -60,6 +67,16 @@ export function RoomTopBar({
       </div>
 
       <div className="flex items-center gap-2">
+        {inviteAction ? (
+          <button
+            type="button"
+            onClick={inviteAction.onClick}
+            disabled={inviteAction.busy}
+            className="flex items-center gap-1.5 rounded-full bg-lavender/30 px-3 py-1.5 text-xs font-semibold text-lavender transition-colors hover:bg-lavender/40 disabled:opacity-50"
+          >
+            <Link2 className="h-3.5 w-3.5" /> {inviteAction.label}
+          </button>
+        ) : null}
         {tableNumber ? (
           <span className="pill bg-lavender/30 text-lavender">Table #{tableNumber}</span>
         ) : null}

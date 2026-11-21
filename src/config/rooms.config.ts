@@ -300,13 +300,57 @@ export function roomDefinition(roomId: string): RoomDefinition {
   return definition;
 }
 
+export function bedroomRoomId(userId: string): string {
+  return `bedroom-${userId}`;
+}
+
+export function isBedroomRoom(roomId: string): boolean {
+  return roomId.startsWith('bedroom-');
+}
+
+export function bedroomOwnerId(roomId: string): string | null {
+  if (!isBedroomRoom(roomId)) return null;
+  return roomId.slice('bedroom-'.length) || null;
+}
+
+export function getBedroomDefinition(ownerId: string): RoomDefinition {
+  const roomId = bedroomRoomId(ownerId);
+  return {
+    id: roomId,
+    name: 'My Room',
+    width: 200,
+    height: 200,
+    floorTile: 'oak-floor',
+    wallTile: 'wall-cream',
+    backgroundImage: '/assets/added/pixel-interiors/tiles-and-items.png',
+    spawn: { x: 100, y: 168 },
+    seats: [
+      { id: `${roomId}-bed`, propName: 'bed', x: 56, y: 92, facing: 'south' },
+      { id: `${roomId}-seat`, propName: 'chair', x: 150, y: 118, facing: 'south' },
+    ],
+    props: [],
+    customProps: [],
+    npcs: [],
+    blockedRects: [
+      { x: 0, y: 0, w: 200, h: 16 },
+      { x: 0, y: 184, w: 200, h: 16 },
+      { x: 0, y: 0, w: 14, h: 200 },
+      { x: 186, y: 0, w: 14, h: 200 },
+    ],
+  };
+}
+
 /**
  * Private rooms have no authored layout, so they reuse the Café shell under
- * their own id/name.
+ * their own id/name. Personal bedrooms use the Pixel interiors layout.
  */
 export function resolveRoomDefinition(roomId: string): RoomDefinition {
   const known = ROOM_DEFINITIONS.find((room) => room.id === roomId);
   if (known) return known;
+
+  if (isBedroomRoom(roomId)) {
+    return getBedroomDefinition(bedroomOwnerId(roomId) ?? '');
+  }
 
   const cafe = ROOM_DEFINITIONS[0];
   return {
