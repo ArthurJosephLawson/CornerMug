@@ -420,18 +420,18 @@
 **Interfaces:**
 - Produces: admin commands/grants aligned with new item IDs and no laptop; migrations include laptop refund, new catalog, focus/activity/bedroom as designed.
 
-- [ ] **Step 1: Update admin tooling**
+- [x] **Step 1: Update admin tooling**
   - Remove laptop examples; add dessert item IDs; keep money pack grants; ensure help text accurate.
 
-- [ ] **Step 2: Consolidate migrations and runbook**
+- [x] **Step 2: Consolidate migrations and runbook**
   - Single recommended run order with Supabase SQL editor steps and post-run checks.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
   - Run: `rg -n "laptop" src/components/admin src/services/adminService.ts docs/admin-migration.sql docs/progress-features-migration.sql`
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   - `git add src/components/admin src/services/adminService.ts docs`
   - `git commit -m "chore(admin): align grants and consolidate migrations"`
 

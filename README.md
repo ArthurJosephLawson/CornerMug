@@ -23,22 +23,25 @@ with live chat, ambient sounds, and a presence system that shows exactly who is 
 - **Room sharding** — every room holds **6 players per table**. When a table fills up,
   the next visitor is dropped into a fresh instance of the same map ("Table #2"),
   up to 10 tables. The dashboard sums live occupancy across all tables.
+- **Public & personal spaces** — Café, Apartment, Office, Bar, and Restaurant public rooms
+  plus a personal **My Room** bedroom with invite-link access.
+- **Cook NPC menus** — stationary cooks in Café/Bar/Restaurant open a speech-bubble menu
+  (E on desktop, tap on mobile) to buy dessert unlocks with money.
 - **Friends** — send and accept friend requests, see every player on CornerMug,
   add people by exact username.
 - **Study tools** — pomodoro timer that survives sign-in and room changes, focus-session
   tracking, hangout-time stats, ambient sound mixer (rain, fireplace, café hum...).
-- **XP & ranks** — 12 XP per minute in a room, a new rank every 500 XP (Cloud, Sky, Space,
-  Moon, Star, Dream, Nebula). Ranks show in name tags as `Name [Rank]` in their own color.
-- **Shop & laptop** — spend XP on extra money or the laptop unlock, then press `L` in a room
-  to open and close it. Dashboard shows your wallet and XP bar.
+- **XP, money & ranks** — hangout XP, +500 XP per completed focus session, a new rank every
+  500 XP, money wallet, and a shop/menu economy (kitten, money packs, dessert unlocks).
+- **Progress dashboard** — rank/XP progress, wallet, study stats, and a 7-day active-time chart.
+- **Dark mode** — Light/Dark toggle in Settings, persisted locally, flat theme (no gradients).
 - **Letters** — the Info & Feedback page is a mail desk; sent letters stay in your mailbox.
 - **Custom passwords** — replace the generated sign-in password in Settings, with a live
   strength meter.
 - **Private rooms** — create a room, get a shareable key like `COZY-3SN`, and only
   people with the key get in.
-- **Admin tools** — an `is_admin` flag with RLS-enforced removal RPC behind `/admin`.
-- **Works everywhere** — WASD + E on desktop; an on-screen joystick and tap-to-sit
-  controls appear automatically on phones and tablets.
+- **Admin tools** — an `is_admin` flag with RLS-enforced RPCs behind `/admin`.
+- **Works everywhere** — WASD + E on desktop; on-screen joystick and tap controls on phones/tablets.
 
 ## 🧱 Tech stack
 
@@ -73,13 +76,9 @@ npm run preview     # serve the production build locally
 
 ### Database setup
 
-All schema lives in [`docs/`](docs/) and is applied top-to-bottom in the Supabase SQL
-editor:
-
-1. `docs/database-schema.sql` — tables, RLS policies
-2. `docs/admin-migration.sql` — admin flag, helper, admin policies
-3. `docs/create-admin-account.sql` — bootstrap an admin account (placeholders included)
-4. `docs/progress-features-migration.sql` — XP, money, owned items, shop RPCs, mail subject
+Base schema and feature migrations live in [`docs/`](docs/). For this update, follow
+[`docs/migration-runbook.md`](docs/migration-runbook.md) for the recommended run order and
+post-run checks (progress/shop/focus/activity, admin grants, bedroom access).
 
 ## ☁️ Deploying
 
