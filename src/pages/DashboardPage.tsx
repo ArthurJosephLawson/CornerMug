@@ -5,10 +5,17 @@ import { useAuth } from '@/context/AuthContext';
 import { PUBLIC_ROOMS } from '@/config/rooms.config';
 import { useRoomOccupancy } from '@/hooks/useRoomOccupancy';
 import { listRooms } from '@/services/roomService';
-import { EMPTY_STATS, fetchStats, type StatsSnapshot } from '@/services/statsService';
+import {
+  EMPTY_STATS,
+  fetchDailyActivity,
+  fetchStats,
+  type DailyActivityPoint,
+  type StatsSnapshot,
+} from '@/services/statsService';
 import type { RoomRow } from '@/types/database.types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { ActiveTimeChart } from '@/components/dashboard/ActiveTimeChart';
 import { PrivateRoomModal } from '@/components/dashboard/PrivateRoomModal';
 import { ProgressPanel } from '@/components/dashboard/ProgressPanel';
 import { PublicRoomCard } from '@/components/dashboard/PublicRoomCard';
@@ -20,6 +27,7 @@ export function DashboardPage() {
 
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [stats, setStats] = useState<StatsSnapshot>(EMPTY_STATS);
+  const [activity, setActivity] = useState<DailyActivityPoint[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const occupancy = useRoomOccupancy(PUBLIC_ROOMS.map((room) => room.id));
 
@@ -30,6 +38,7 @@ export function DashboardPage() {
   useEffect(() => {
     if (!profile) return;
     void fetchStats(profile.id).then(setStats);
+    void fetchDailyActivity(7).then(setActivity);
   }, [profile]);
 
   return (
@@ -50,6 +59,24 @@ export function DashboardPage() {
       <ProgressPanel xp={profile?.xp ?? 0} money={profile?.money ?? 0} />
 
       <StudyStatsGrid stats={stats} />
+
+      <Card>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold">Active time (last 7 days)</h2>
+            <p className="text-sm text-charcoal/55 dark:text-white/60">
+              Hangout time tracked each day.
+            </p>
+          </div>
+        </div>
+        {activity.length > 0 ? (
+          <ActiveTimeChart points={activity} />
+        ) : (
+          <p className="text-sm text-charcoal/50 dark:text-white/50">
+            No activity tracked yet. Spend time in rooms to start your chart.
+          </p>
+        )}
+      </Card>
 
       <section>
         <div className="mb-3 flex items-center justify-between">

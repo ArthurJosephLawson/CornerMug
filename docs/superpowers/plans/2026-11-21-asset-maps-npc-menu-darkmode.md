@@ -351,20 +351,20 @@
 **Interfaces:**
 - Produces: Dashboard section showing last 7 days active time as green line chart (SVG/canvas/DOM), no gradients, theme-aware labels.
 
-- [ ] **Step 1: Fetch activity data**
+- [x] **Step 1: Fetch activity data**
   - Load last 7 days on dashboard mount/profile availability; handle empty/error state gracefully.
 
-- [ ] **Step 2: Implement chart component**
+- [x] **Step 2: Implement chart component**
   - Render axes/labels minimally and a solid green polyline/line; scale by max minutes (min 1).
 
-- [ ] **Step 3: Add to dashboard layout**
+- [x] **Step 3: Add to dashboard layout**
   - Place near stats/progress without breaking existing sections.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add src/components/dashboard/ActiveTimeChart.tsx src/pages/DashboardPage.tsx src/services`
   - `git commit -m "feat(dashboard): add 7-day active time line chart"`
 
