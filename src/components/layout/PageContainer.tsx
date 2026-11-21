@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { PasswordChangePopup } from '@/components/ui/PasswordChangePopup';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
 
@@ -17,6 +18,7 @@ export function PageContainer({ children, bare = false }: PageContainerProps) {
       <Navbar />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
       <Footer />
+      <PasswordChangePopup />
     </div>
   );
 }
