@@ -22,6 +22,7 @@ export interface SettingsState {
   uiChimes: boolean;
   showOnlineStatus: boolean;
   showActiveRoom: boolean;
+  darkMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -29,6 +30,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
   uiChimes: false,
   showOnlineStatus: true,
   showActiveRoom: true,
+  darkMode: false,
 };
 
 export function readJSON<T>(key: string): T | null {

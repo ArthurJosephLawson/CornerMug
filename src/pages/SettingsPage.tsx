@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Check, Copy, Eye, EyeOff, Lock, LogOut, Volume2 } from 'lucide-react';
+import { Check, Copy, Eye, EyeOff, Lock, LogOut, Moon, Volume2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import { CHARACTERS } from '@/config/sprites.config';
@@ -21,8 +21,8 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <div>
-        <p className="text-sm font-semibold">{label}</p>
-        <p className="text-xs text-charcoal/50">{description}</p>
+        <p className="text-sm font-semibold text-charcoal dark:text-[#f4f1ea]">{label}</p>
+        <p className="text-xs text-charcoal/50 dark:text-white/55">{description}</p>
       </div>
       <button
         type="button"
@@ -30,7 +30,7 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-          checked ? 'bg-sage-deep' : 'bg-charcoal/15'
+          checked ? 'bg-sage-deep' : 'bg-charcoal/15 dark:bg-white/20'
         }`}
       >
         <span
@@ -147,10 +147,16 @@ export function SettingsPage() {
 
         <Card tone="sage">
           <div className="mb-2 flex items-center gap-2">
-            <Volume2 className="h-4 w-4 text-charcoal/50" />
-            <h2 className="font-bold">Comfort</h2>
+            <Moon className="h-4 w-4 text-charcoal/50" />
+            <h2 className="font-bold">Appearance & Comfort</h2>
           </div>
-          <div className="divide-y divide-charcoal/5">
+          <div className="divide-y divide-charcoal/5 dark:divide-white/10">
+            <ToggleRow
+              label="Dark mode"
+              description="Use a darker, flat theme across the site."
+              checked={settings.darkMode}
+              onChange={(next) => updateSettings({ darkMode: next })}
+            />
             <ToggleRow
               label="Ambient audio"
               description="Allow rain and café hum playback."

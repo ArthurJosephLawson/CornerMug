@@ -79,25 +79,25 @@
 - Produces: `SettingsState` includes `darkMode: boolean` (default `false`), persisted and exposed via `useSettings()`.
 - Produces: root element receives `dark` class when enabled.
 
-- [ ] **Step 1: Extend settings state**
+- [x] **Step 1: Extend settings state**
   - Add `darkMode: boolean` to `SettingsState` and `DEFAULT_SETTINGS` in `src/lib/localStorage.ts` with default `false`.
 
-- [ ] **Step 2: Enable Tailwind dark mode and theme tokens**
+- [x] **Step 2: Enable Tailwind dark mode and theme tokens**
   - Set `darkMode: 'class'` in `tailwind.config.js`.
   - Add dark CSS variables/surfaces in `src/index.css` (`:root` and `.dark body/#root` or equivalent) using flat colors only.
 
-- [ ] **Step 3: Apply theme class**
+- [x] **Step 3: Apply theme class**
   - In `SettingsProvider` or app root effect, sync `document.documentElement.classList.toggle('dark', settings.darkMode)`.
 
-- [ ] **Step 4: Add Settings toggle**
+- [x] **Step 4: Add Settings toggle**
   - Add `ToggleRow` “Dark mode” in `src/pages/SettingsPage.tsx` bound to `settings.darkMode`.
   - Replace hardcoded light-only classes in Settings page incrementally as needed for readability (full sweep in Task 3).
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   - `git add src/lib/localStorage.ts src/context/SettingsContext.tsx src/main.tsx src/App.tsx tailwind.config.js src/index.css src/pages/SettingsPage.tsx`
   - `git commit -m "feat(theme): add persisted dark mode setting and theme plumbing"`
 

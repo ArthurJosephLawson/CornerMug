@@ -6,12 +6,30 @@
   --ivory: #faf7f2;
   --ivory-deep: #f5f2eb;
   --charcoal: #1e1e24;
+  --surface: #ffffff;
+  --surface-muted: #f8f4ee;
+  --border-soft: rgba(30, 30, 36, 0.08);
   --lavender: #c8b6ff;
   --pink: #f4acb7;
   --butter: #fde49e;
   --sage: #b7e4c7;
   --powder: #bde0fe;
   --peach: #ffd6ba;
+}
+
+.dark {
+  --ivory: #14141a;
+  --ivory-deep: #1b1b24;
+  --charcoal: #f4f1ea;
+  --surface: #1f1f29;
+  --surface-muted: #262633;
+  --border-soft: rgba(244, 241, 234, 0.12);
+  --lavender: #7f6bd6;
+  --pink: #b96b7a;
+  --butter: #8a7438;
+  --sage: #4f7a63;
+  --powder: #4f7399;
+  --peach: #9a6748;
 }
 
 html,
@@ -35,11 +53,11 @@ canvas {
 
 @layer components {
   .page-shell {
-    @apply min-h-full bg-ivory text-charcoal;
+    @apply min-h-full bg-ivory text-charcoal dark:bg-ivory dark:text-charcoal;
   }
 
   .card-surface {
-    @apply rounded-2xl border border-charcoal/5 bg-white/70 shadow-soft;
+    @apply rounded-2xl border border-charcoal/5 bg-white/70 shadow-soft dark:border-white/10 dark:bg-white/5;
   }
 
   .pill {

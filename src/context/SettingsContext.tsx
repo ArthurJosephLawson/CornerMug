@@ -29,6 +29,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     writeSettings(settings);
   }, [settings]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', settings.darkMode);
+    root.style.colorScheme = settings.darkMode ? 'dark' : 'light';
+  }, [settings.darkMode]);
+
   const updateSettings = useCallback((patch: Partial<SettingsState>) => {
     setSettings((current) => ({ ...current, ...patch }));
   }, []);
