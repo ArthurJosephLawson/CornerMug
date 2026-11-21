@@ -4,6 +4,7 @@ import type { RoomDefinition } from '@/types/engine.types';
 export interface TileImages {
   floor: HTMLImageElement | null;
   wall: HTMLImageElement | null;
+  background?: HTMLImageElement | null;
 }
 
 /**
@@ -16,6 +17,11 @@ export class TileRenderer {
 
     context.fillStyle = '#EFE9DF';
     context.fillRect(0, 0, room.width, room.height);
+
+    if (images.background) {
+      context.drawImage(images.background, 0, 0, room.width, room.height);
+      return;
+    }
 
     this.drawFloor(context, room, images.floor, tile);
     this.drawWalls(context, room, images.wall, tile);

@@ -31,6 +31,7 @@ import type {
   FrameRect,
   ParsedSpriteSheet,
   PlayerState,
+  RoomNpc,
   SeatAnchor,
 } from '@/types/engine.types';
 import type { NetworkPeer } from '@/types/network.types';
@@ -46,6 +47,12 @@ interface RemoteAvatar {
   hasKitten: boolean;
 }
 
+export interface NearbyNpcState {
+  id: string;
+  name: string;
+  action: RoomNpc['action'];
+}
+
 export interface GameCanvasProps {
   roomId: string;
   userId: string;
@@ -57,6 +64,8 @@ export interface GameCanvasProps {
   connection: RoomConnectionState;
   onNearSeatChange?: (seat: SeatAnchor | null) => void;
   onSeatedChange?: (seated: boolean) => void;
+  onNearbyNpcChange?: (npc: NearbyNpcState | null) => void;
+  onNpcAction?: (npc: NearbyNpcState) => void;
   className?: string;
   /** Full-bleed presentation for the phone game mode (no rounded card). */
   fullscreen?: boolean;
@@ -69,6 +78,12 @@ export interface GameCanvasProps {
 export interface GameCanvasHandle {
   /** Sit / stand toggle, shared by the E key, the seat badge and touch. */
   toggleSeat: () => void;
+  /** Trigger interact (seat or nearby NPC), used by mobile controls. */
+  interact: () => void;
+  /** Get current screen position for an NPC, if present. */
+  getNpcScreenPosition: (npcId: string) => { x: number; y: number } | null;
+  /** Get nearest interactable NPC, if any. */
+  getNearestNpc: () => NearbyNpcState | null;
 }
 
 /**
@@ -88,6 +103,8 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
     connection,
     onNearSeatChange,
     onSeatedChange,
+    onNearbyNpcChange,
+    onNpcAction,
     className = '',
     fullscreen = false,
     phoneViewport = false,
@@ -101,10 +118,14 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   const peersRef = useRef<NetworkPeer[]>(connection.peers);
   const nearSeatCallbackRef = useRef(onNearSeatChange);
   const seatedCallbackRef = useRef(onSeatedChange);
+  const nearbyNpcCallbackRef = useRef(onNearbyNpcChange);
+  const npcActionCallbackRef = useRef(onNpcAction);
   const xpRef = useRef(xp);
   const ownsKittenRef = useRef(ownsKitten);
   const touchAxisRef = useRef<InputAxis>({ x: 0, y: 0 });
   const interactRequestRef = useRef(false);
+  const npcScreenPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const nearestNpcRef = useRef<NearbyNpcState | null>(null);
 
   useImperativeHandle(
     ref,
@@ -112,6 +133,11 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       toggleSeat: () => {
         interactRequestRef.current = true;
       },
+      interact: () => {
+        interactRequestRef.current = true;
+      },
+      getNpcScreenPosition: (npcId: string) => npcScreenPositionsRef.current.get(npcId) ?? null,
+      getNearestNpc: () => nearestNpcRef.current,
     }),
     [],
   );
@@ -127,6 +153,14 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   useEffect(() => {
     seatedCallbackRef.current = onSeatedChange;
   }, [onSeatedChange]);
+
+  useEffect(() => {
+    nearbyNpcCallbackRef.current = onNearbyNpcChange;
+  }, [onNearbyNpcChange]);
+
+  useEffect(() => {
+    npcActionCallbackRef.current = onNpcAction;
+  }, [onNpcAction]);
 
   useEffect(() => {
     xpRef.current = xp;
@@ -158,9 +192,10 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       if (disposed) return;
 
       const built = new RoomBuilder().build(definition);
-      const [floorImage, wallImage] = await Promise.all([
-        loader.loadTileImage(definition.floorTile),
-        loader.loadTileImage(definition.wallTile),
+      const [floorImage, wallImage, backgroundImage] = await Promise.all([
+        definition.floorImage ? loader.loadImageByPath(definition.floorImage) : loader.loadTileImage(definition.floorTile),
+        definition.wallImage ? loader.loadImageByPath(definition.wallImage) : loader.loadTileImage(definition.wallTile),
+        definition.backgroundImage ? loader.loadImageByPath(definition.backgroundImage).catch(() => null) : Promise.resolve(null),
       ]);
       if (disposed) return;
 
@@ -170,6 +205,14 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         [...propNames].map(async (name) => {
           const image = await loader.loadPropImage(name);
           if (image && !disposed) propImages.set(name, image);
+        }),
+      );
+
+      const customPropImages = new Map<string, HTMLImageElement>();
+      await Promise.all(
+        (definition.customProps ?? []).map(async (prop) => {
+          const image = await loader.loadImageByPath(prop.image).catch(() => null);
+          if (image && !disposed) customPropImages.set(prop.id, image);
         }),
       );
       if (disposed) return;
@@ -205,6 +248,28 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         widthCoverage: phoneViewport ? 0.8 : 0,
       });
 
+      const npcAnimators = new Map<string, AnimationController>();
+      const npcDefinitions = definition.npcs ?? [];
+      await Promise.all(
+        [...new Set(npcDefinitions.map((npc) => npc.slug))].map(async (npcSlug) => {
+          if (sheets.has(npcSlug)) return;
+          try {
+            const sheet = await loader.loadSheet(npcSlug);
+            if (!disposed) sheets.set(npcSlug, sheet);
+          } catch {
+            // NPC without loaded sheet will be skipped.
+          }
+        }),
+      );
+      if (disposed) return;
+      for (const npc of npcDefinitions) {
+        const sheet = sheets.get(npc.slug);
+        if (!sheet) continue;
+        const animator = new AnimationController(sheet);
+        animator.play('idle', npc.direction);
+        npcAnimators.set(npc.id, animator);
+      }
+
       const remotes = new Map<string, RemoteAvatar>();
       const pet = {
         x: definition.spawn.x - 24,
@@ -215,6 +280,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       };
       let lastNearSeatId: string | null = null;
       let lastSeated = false;
+      let lastNearbyNpcId: string | null = null;
       let lastKittenState = ownsKittenRef.current;
       let lastBroadcastAt = 0;
       let lastPresenceJson = '';
@@ -242,6 +308,16 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
             bestDistance = distance;
             best = seat;
           }
+        }
+        return best;
+      };
+
+      const nearestNpc = (): (RoomNpc & { distance: number }) | null => {
+        let best: (RoomNpc & { distance: number }) | null = null;
+        for (const npc of npcDefinitions) {
+          const distance = Math.hypot(npc.x - player.state.position.x, npc.y - player.state.position.y);
+          if (distance > npc.interactionRadius) continue;
+          if (!best || distance < best.distance) best = { ...npc, distance };
         }
         return best;
       };
@@ -390,17 +466,25 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           moveKitten(pet, target.x, target.y, deltaSeconds);
         }
 
+        const npcNear = player.state.seated ? null : nearestNpc();
+        const npcState: NearbyNpcState | null = npcNear
+          ? { id: npcNear.id, name: npcNear.name, action: npcNear.action }
+          : null;
+        nearestNpcRef.current = npcState;
+
         if (input.consumeInteract() || interactRequestRef.current) {
           interactRequestRef.current = false;
           if (player.state.seated) {
             player.stand(built.collision);
+          } else if (npcState) {
+            npcActionCallbackRef.current?.(npcState);
           } else {
             const seat = nearestSeat();
             if (seat) player.sit(seat);
           }
         }
 
-        const nearSeat = player.state.seated ? null : nearestSeat();
+        const nearSeat = player.state.seated || npcState ? null : nearestSeat();
         const nearSeatId = nearSeat?.id ?? null;
         if (nearSeatId !== lastNearSeatId) {
           lastNearSeatId = nearSeatId;
@@ -409,6 +493,11 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         if (player.state.seated !== lastSeated) {
           lastSeated = player.state.seated;
           seatedCallbackRef.current?.(lastSeated);
+        }
+        const nearbyNpcId = npcState?.id ?? null;
+        if (nearbyNpcId !== lastNearbyNpcId) {
+          lastNearbyNpcId = nearbyNpcId;
+          nearbyNpcCallbackRef.current?.(npcState);
         }
 
         syncRemotes();
@@ -424,6 +513,9 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         localAnimator.update(deltaSeconds * 1000);
         for (const avatar of remotes.values()) {
           avatar.animator?.update(deltaSeconds * 1000);
+        }
+        for (const animator of npcAnimators.values()) {
+          animator.update(deltaSeconds * 1000);
         }
 
         const hasKitten = ownsKittenRef.current;
@@ -447,6 +539,16 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         }
 
         camera.follow(player.state.position);
+
+        const offset = camera.currentOffset;
+        const positions = new Map<string, { x: number; y: number }>();
+        for (const npc of npcDefinitions) {
+          positions.set(npc.id, {
+            x: (npc.x - offset.x) * camera.zoom,
+            y: (npc.y - CHARACTER_PIVOT_Y - offset.y - 8) * camera.zoom,
+          });
+        }
+        npcScreenPositionsRef.current = positions;
       };
 
       const drawSprite = (
@@ -499,7 +601,11 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
 
         camera.applyTransform(context);
 
-        tileRenderer.draw(context, definition, { floor: floorImage, wall: wallImage });
+        tileRenderer.draw(context, definition, {
+          floor: floorImage,
+          wall: wallImage,
+          background: backgroundImage,
+        });
 
         const drawProp = (name: string, x: number, y: number) => {
           const image = propImages.get(name);
@@ -510,6 +616,18 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
             Math.round(y - PROP_PIVOT_Y),
             PROP_CELL_WIDTH,
             PROP_CELL_HEIGHT,
+          );
+        };
+
+        const drawCustomProp = (prop: NonNullable<typeof definition.customProps>[number]) => {
+          const image = customPropImages.get(prop.id);
+          if (!image) return;
+          context.drawImage(
+            image,
+            Math.round(prop.x - prop.anchorX),
+            Math.round(prop.y - prop.anchorY),
+            prop.width,
+            prop.height,
           );
         };
 
@@ -532,6 +650,18 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
           );
         };
 
+        const drawNpcName = (name: string, x: number, y: number) => {
+          const labelY = Math.round(y - CHARACTER_PIVOT_Y - 8);
+          context.font = '600 8px "Plus Jakarta Sans", Inter, sans-serif';
+          context.textAlign = 'center';
+          context.textBaseline = 'bottom';
+          const width = context.measureText(name).width;
+          context.fillStyle = 'rgba(30, 30, 36, 0.55)';
+          context.fillRect(Math.round(x - width / 2 - 4), labelY - 9, width + 8, 11);
+          context.fillStyle = '#FDE49E';
+          context.fillText(name, Math.round(x), labelY);
+        };
+
         for (const prop of definition.props) {
           if (prop.name.startsWith('wall-') || prop.name === 'rug') drawProp(prop.name, prop.x, prop.y);
         }
@@ -540,6 +670,21 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
         for (const prop of definition.props) {
           if (prop.name.startsWith('wall-') || prop.name === 'rug') continue;
           items.push({ groundY: prop.y, draw: () => drawProp(prop.name, prop.x, prop.y) });
+        }
+        for (const prop of definition.customProps ?? []) {
+          items.push({ groundY: prop.groundY ?? prop.y, draw: () => drawCustomProp(prop) });
+        }
+        for (const npc of npcDefinitions) {
+          const animator = npcAnimators.get(npc.id);
+          const sheet = sheets.get(npc.slug);
+          if (!animator || !sheet) continue;
+          items.push({
+            groundY: npc.y,
+            draw: () => {
+              drawSprite(sheet, animator.getCurrentFrame(), { x: npc.x, y: npc.y });
+              drawNpcName(npc.name, npc.x, npc.y);
+            },
+          });
         }
 
         items.push({

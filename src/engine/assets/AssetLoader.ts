@@ -77,6 +77,10 @@ export class AssetLoader {
     return promise;
   }
 
+  loadImageByPath(path: string): Promise<HTMLImageElement> {
+    return this.loadImage(path);
+  }
+
   async loadSheet(slug: CharacterSlug): Promise<ParsedSpriteSheet> {
     const cached = this.sheetCache.get(slug);
     if (cached) return cached;

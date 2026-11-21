@@ -108,6 +108,31 @@ export interface CollisionBox {
   h: number;
 }
 
+export interface CustomPropPlacement {
+  id: string;
+  image: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  anchorX: number;
+  anchorY: number;
+  collision?: CollisionBox | null;
+  passable?: boolean;
+  groundY?: number;
+}
+
+export interface RoomNpc {
+  id: string;
+  name: string;
+  slug: CharacterSlug;
+  x: number;
+  y: number;
+  direction: Direction;
+  interactionRadius: number;
+  action: 'menu';
+}
+
 export interface RoomDefinition {
   id: string;
   name: string;
@@ -115,9 +140,14 @@ export interface RoomDefinition {
   height: number;
   floorTile: string;
   wallTile: string;
+  floorImage?: string;
+  wallImage?: string;
+  backgroundImage?: string;
   spawn: Vector2;
   seats: SeatAnchor[];
   props: PropPlacement[];
+  customProps?: CustomPropPlacement[];
+  npcs?: RoomNpc[];
   blockedRects: CollisionBox[];
 }
 

@@ -37,6 +37,11 @@ export class RoomBuilder {
       if (box) collision.addRect(box);
     }
 
+    for (const prop of definition.customProps ?? []) {
+      if (prop.passable || !prop.collision) continue;
+      collision.addRect(prop.collision);
+    }
+
     for (const rect of definition.blockedRects) {
       collision.addRect(rect);
     }
