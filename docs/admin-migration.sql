@@ -328,6 +328,79 @@ begin
 end;
 $$;
 
+-- Remove XP, money, or an owned item from any player. Admin only. -----------
+create or replace function public.admin_take(
+  target_id uuid,
+  p_xp integer default 0,
+  p_money integer default 0,
+  p_item text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_xp      integer := least(greatest(coalesce(p_xp, 0), 0), 1000000);
+  v_money   integer := least(greatest(coalesce(p_money, 0), 0), 1000000);
+  v_item    text := nullif(btrim(coalesce(p_item, '')), '');
+  v_row     public.users%rowtype;
+  v_taken   text := null;
+  v_took_xp integer := 0;
+  v_took_money integer := 0;
+begin
+  if not public.is_admin() then
+    raise exception 'Only admins can remove rewards.';
+  end if;
+
+  select * into v_row from public.users where id = target_id for update;
+  if not found then
+    raise exception 'Player not found.';
+  end if;
+
+  if v_item is not null then
+    if v_item = 'kitten'
+       or v_item = 'dessert-cheesecake'
+       or v_item = 'dessert-chocolate-cake'
+       or v_item = 'dessert-strawberry-shortcake'
+       or v_item = 'dessert-macarons'
+       or v_item = 'dessert-croissant'
+       or v_item = 'dessert-pancakes'
+    then
+      if v_item = any (v_row.owned_items) then
+        v_row.owned_items := array_remove(v_row.owned_items, v_item);
+        v_taken := v_item;
+      end if;
+    elsif v_item in ('money-250', 'money-600', 'money-1500') then
+      raise exception 'Money packs are not owned items. Use /take @user <amount> money.';
+    else
+      raise exception 'Unknown item. Use kitten or dessert-cheesecake, dessert-chocolate-cake, dessert-strawberry-shortcake, dessert-macarons, dessert-croissant, dessert-pancakes.';
+    end if;
+  end if;
+
+  v_took_xp := least(v_xp, v_row.xp);
+  v_took_money := least(v_money, v_row.money);
+
+  update public.users
+     set xp = greatest(0, xp - v_xp),
+         money = greatest(0, money - v_money),
+         owned_items = v_row.owned_items,
+         last_seen_at = now()
+   where id = target_id
+  returning * into v_row;
+
+  return jsonb_build_object(
+    'username', v_row.username,
+    'xp', v_row.xp,
+    'money', v_row.money,
+    'owned_items', to_jsonb(v_row.owned_items),
+    'taken_xp', v_took_xp,
+    'taken_money', v_took_money,
+    'taken_item', v_taken
+  );
+end;
+$$;
+
 -- Permissions ---------------------------------------------------------------
 revoke all on function public.is_admin() from public;
 revoke all on function public.is_owner() from public;
@@ -336,6 +409,7 @@ revoke all on function public.admin_set_role(uuid, boolean) from public;
 revoke all on function public.admin_rename_user(uuid, text) from public;
 revoke all on function public.admin_get_password(uuid) from public;
 revoke all on function public.admin_grant(uuid, integer, integer, text) from public;
+revoke all on function public.admin_take(uuid, integer, integer, text) from public;
 
 grant execute on function public.is_admin() to authenticated;
 grant execute on function public.is_owner() to authenticated;
@@ -344,6 +418,7 @@ grant execute on function public.admin_set_role(uuid, boolean) to authenticated;
 grant execute on function public.admin_rename_user(uuid, text) to authenticated;
 grant execute on function public.admin_get_password(uuid) to authenticated;
 grant execute on function public.admin_grant(uuid, integer, integer, text) to authenticated;
+grant execute on function public.admin_take(uuid, integer, integer, text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Set the owner. Replace the email if your account uses a different one.

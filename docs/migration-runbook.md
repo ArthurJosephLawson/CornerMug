@@ -17,6 +17,7 @@ All scripts are designed to be safe to re-run, but review your project before ap
 2. **`docs/admin-migration.sql`**
    - Admin/owner flags, policies, protections, and admin RPCs
    - Updated `admin_grant` item catalog (no laptop; includes dessert unlock IDs)
+   - Added `admin_take` RPC for removing XP, money, or owned items
    - Column/table permission lockdowns for progress/admin fields
    - Sets owner for `arthur.joseph.lawson@gmail.com` (adjust if needed)
 3. **`docs/bedroom-access-migration.sql`**
@@ -29,7 +30,7 @@ All scripts are designed to be safe to re-run, but review your project before ap
   - `select count(*) from users where 'laptop' = any(owned_items);` → should be `0`
 - Admin:
   - `select username, is_admin, is_owner from public.users where is_owner;`
-  - `select proname from pg_proc where proname = 'admin_grant';`
+  - `select proname from pg_proc where proname in ('admin_grant','admin_take');`
 - Bedroom:
   - `select to_regclass('public.bedrooms');`
   - `select proname from pg_proc where proname in ('get_or_create_bedroom_invite','check_bedroom_access');`

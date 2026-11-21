@@ -7,6 +7,7 @@ import {
   removeUser,
   renameUser,
   setAdmin,
+  takeUser,
 } from '@/services/adminService';
 
 interface AdminTerminalProps {
@@ -75,6 +76,10 @@ export function AdminTerminal({ users, selfId, isOwner, onRefresh }: AdminTermin
           '/give @username 500 money',
           '/give @username kitten',
           '/give @username dessert-cheesecake',
+          '/take @me 500',
+          '/take @username 500 xp',
+          '/take @username 500 money',
+          '/take @username kitten',
           'items: kitten, money-250/600/1500, dessert-cheesecake, dessert-chocolate-cake, dessert-strawberry-shortcake, dessert-macarons, dessert-croissant, dessert-pancakes',
           '/admin @username',
           '/unadmin @username',
@@ -148,6 +153,56 @@ export function AdminTerminal({ users, selfId, isOwner, onRefresh }: AdminTermin
       append({
         kind: 'success',
         text: `${target.username}: ${pieces.length ? pieces.join(', ') : 'already had that item'} | now ${result.xp} XP, ${result.money} money.`,
+      });
+      await onRefresh();
+      return;
+    }
+
+    if (name === 'take') {
+      const target = resolveTarget(args[0] ?? '');
+      if (!target) {
+        fail('Target not found. Use @me or @username.');
+        return;
+      }
+      const raw = args[1];
+      if (!raw) {
+        fail('Take what? Example: /take @me 500 or /take @me kitten.');
+        return;
+      }
+
+      const unit = (args[2] ?? 'xp').toLowerCase();
+      const amount = Number(raw);
+      let xp = 0;
+      let money = 0;
+      let item: string | null = null;
+
+      if (Number.isFinite(amount) && Number.isInteger(amount) && amount >= 0) {
+        if (unit === 'money') money = amount;
+        else if (unit === 'xp') xp = amount;
+        else {
+          fail('Unit must be xp or money. Example: /take @me 500 xp.');
+          return;
+        }
+      } else if (unit === 'xp' || args[2] === undefined) {
+        item = raw.toLowerCase();
+      } else {
+        fail('Invalid amount. Use a whole number.');
+        return;
+      }
+
+      if (xp === 0 && money === 0 && !item) {
+        fail('Nothing to take. Use a positive amount or an item name.');
+        return;
+      }
+
+      const result = await takeUser(target.id, { xp, money, item });
+      const pieces: string[] = [];
+      if (result.taken_xp) pieces.push(`-${result.taken_xp} XP`);
+      if (result.taken_money) pieces.push(`-${result.taken_money} money`);
+      if (result.taken_item) pieces.push(result.taken_item);
+      append({
+        kind: 'success',
+        text: `${target.username}: ${pieces.length ? pieces.join(', ') : 'nothing to take'} | now ${result.xp} XP, ${result.money} money.`,
       });
       await onRefresh();
       return;
