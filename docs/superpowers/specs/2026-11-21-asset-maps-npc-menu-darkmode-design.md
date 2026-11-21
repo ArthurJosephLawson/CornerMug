@@ -19,7 +19,7 @@ Only assets already in `public/sprites` and `Added_assets/` may be used. No unap
   - **Restaurant (public, new):** built from FoodDrink `RestaurantFixtures`, `RestaurantProps`, `Architecture`.
   - **My Room / Bedroom (personal, new):** one per player, built from `Pixel_16_interiors_v2_free/tiles and items.png`, fixed decorated layout, no NPC, no furniture move/save this update.
 - **NPC/menu:** Cook NPC in Café, Bar, Restaurant. Walk near + **E** (desktop) or tap interact (mobile) opens/closes a **speech-bubble menu** anchored to NPC. Same menu in all three. Interacting/opening/closing must not remove player progress.
-- **Menu currency:** menu purchases use **money**. Money packs unchanged (buy with XP, grant money).
+- **Menu currency:** menu purchases use **money**. Money packs unchanged (buy with XP, grant money). Item storage model stays unlocks + money packs in existing profile fields (`xp`, `money`, `owned_items`), but this update requires new/changed RPCs and schema additions for money-priced unlock purchases, focus XP awards, daily activity tracking, and bedroom access/invite.
 - **Shop/menu items (approved):**
   - Remove: **Laptop** (shop, room behavior, input, grants, docs refs, assets/credits as applicable).
   - Keep: **Kitten** — 350 XP, unlock (Shop).
