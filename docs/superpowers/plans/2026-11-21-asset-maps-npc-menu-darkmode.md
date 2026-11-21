@@ -41,27 +41,27 @@
 **Interfaces:**
 - Produces: runtime-accessible approved assets under `public/assets/added/desserts/`, `public/assets/added/fooddrink/`, `public/assets/added/pixel-interiors/` (names may vary but must be stable and referenced consistently later).
 
-- [ ] **Step 1: Inventory approved runtime assets**
+- [x] **Step 1: Inventory approved runtime assets**
   - List Dessert_Icons PNGs to copy (all or only needed; prefer only needed 6 + none extra): `Cheesecake.png`, `ChocolateCake.png`, `StrawberryShortcake.png`, `Macrons.png`, `Croissant.png`, `Pancakes.png`.
   - Identify FoodDrink individual PNGs/tilesheet files and Pixel interiors `tiles and items.png` to copy.
 
-- [ ] **Step 2: Copy approved assets into `public/assets/added/`**
+- [x] **Step 2: Copy approved assets into `public/assets/added/`**
   - Run: `mkdir -p public/assets/added/desserts public/assets/added/fooddrink public/assets/added/pixel-interiors`
   - Run: `cp 'Added_assets/extracted/Dessert_Icons/Cheesecake.png' ... public/assets/added/desserts/` (all 6 approved icons)
   - Run: `cp 'Added_assets/extracted/Pixel_16_interiors_v2_free/tiles and items.png' public/assets/added/pixel-interiors/tiles-and-items.png`
   - Run: copy selected FoodDrink `Tiles/**` and/or `TileMap/**` needed for Bar/Restaurant/Café enrichment into `public/assets/added/fooddrink/` preserving useful structure.
 
-- [ ] **Step 3: Update credits**
+- [x] **Step 3: Update credits**
   - Add attribution/licensing notes for Food & Drink 2D Mega Props Pack, Dessert Icons pack, Pixel 16 Interiors v2 Free per included license/readme files in `Added_assets/extracted/.../Documentation` or package contents.
   - Remove or mark laptop credit only when laptop asset/runtime use is fully removed (can be finalized in laptop-removal task; if done now, keep consistent).
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
   - Run: `find public/assets/added -type f | sort`
   - Expected: approved files present only.
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add public/assets/added public/sprites/credits.txt docs/superpowers/plans/2026-11-21-asset-maps-npc-menu-darkmode.md`
   - `git commit -m "chore(assets): stage approved added packs and update credits"`
 
