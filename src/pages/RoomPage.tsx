@@ -91,6 +91,13 @@ export function RoomPage() {
     }
   }, [profile?.id, hunger, health]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setHunger((current) => Math.max(0, current - 5));
+    }, 120_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const handleNearSeat = useCallback((seat: SeatAnchor | null) => setNearSeat(seat), []);
   const handleSeated = useCallback((next: boolean) => setSeated(next), []);
   const handleNearbyNpc = useCallback((npc: NearbyNpcState | null) => setNearbyNpc(npc), []);

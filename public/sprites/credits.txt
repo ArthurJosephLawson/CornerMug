@@ -7,4 +7,4 @@ Worker PNGs are preserved at native resolution. Environment artwork and sample
 assembly are from the existing Modern Rooms & People project.
 https://happyhustle.itch.io/
 Kitten animations: Free 16x16 cat pack (orange tabby, gray and white variants).
-Main Characters Home Free Top Down Pixel Art Asset by Craftpix (Added_assets/main-characters-home-free-top-down-pixel-art-asset.zip, rendered maps copied to public/assets/added/main-characters-home/).
+Dessert Icons pack (Added_assets/extracted/Dessert_Icons, copied to public/assets/added/desserts).

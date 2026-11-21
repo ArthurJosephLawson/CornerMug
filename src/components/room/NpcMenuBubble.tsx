@@ -69,15 +69,11 @@ export function NpcMenuBubble({
                 key={item.id}
                 className="rounded-xl border border-charcoal/10 bg-white/70 p-2 dark:border-white/10 dark:bg-white/5"
               >
-                {item.image ? (
-                  <img
-                    src={item.image}
-                    alt=""
-                    className="mx-auto h-14 w-14 object-contain [image-rendering:pixelated]"
-                  />
-                ) : (
-                  <div className="mx-auto h-14 w-14 rounded-lg bg-charcoal/5 dark:bg-white/10" />
-                )}
+                <img
+                  src={item.image}
+                  alt=""
+                  className="mx-auto h-14 w-14 object-contain [image-rendering:pixelated]"
+                />
                 <p className="mt-1 text-center text-xs font-semibold leading-tight">{item.name}</p>
                 <p className="mt-0.5 flex items-center justify-center gap-1 text-[11px] font-semibold text-charcoal/60 dark:text-white/60">
                   <Coins className="h-3 w-3 text-butter-deep" /> {item.priceMoney}
