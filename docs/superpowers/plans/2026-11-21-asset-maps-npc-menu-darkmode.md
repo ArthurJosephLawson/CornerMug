@@ -189,24 +189,24 @@
 - Produces: loader/canvas can load and render custom image props by path and static NPC sprites.
 - Consumes: existing manifest prop/tile pipeline remains functional.
 
-- [ ] **Step 1: Add types**
+- [x] **Step 1: Add types**
   - Extend `RoomDefinition` (and supporting interfaces) for custom floor/wall image or extra draw layers if needed, custom props, and NPC entities.
 
-- [ ] **Step 2: Load custom images**
+- [x] **Step 2: Load custom images**
   - Add `AssetLoader.loadImageByPath(path)` reuse of `loadImage` and room preload support for custom prop/entity/NPC assets.
 
-- [ ] **Step 3: Render custom props and NPCs**
+- [x] **Step 3: Render custom props and NPCs**
   - In `GameCanvas.tsx`, preload custom prop/NPC images, include custom props in depth-sorted draw list using anchor-based draw rect and groundY, and draw NPC character frames (idle) with name tag/indicator.
   - Expose NPC screen/world interaction data needed by RoomPage/menu overlay (callback/ref or derived state) without breaking existing props.
 
-- [ ] **Step 4: Collision/build support**
+- [x] **Step 4: Collision/build support**
   - Update `RoomBuilder` to include custom prop collision boxes when provided.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS (existing rooms unchanged)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   - `git add src/types src/engine src/components/room/GameCanvas.tsx src/config/rooms.config.ts`
   - `git commit -m "feat(engine): support custom room props and static NPC entities"`
 

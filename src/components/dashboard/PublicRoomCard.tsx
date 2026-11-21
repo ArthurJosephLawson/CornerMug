@@ -1,4 +1,4 @@
-import { BedDouble, Coffee, Laptop, Users } from 'lucide-react';
+import { BedDouble, Coffee, Laptop, Users, UtensilsCrossed, Wine } from 'lucide-react';
 import type { RoomRow } from '@/types/database.types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -7,12 +7,16 @@ const roomIcons: Record<string, typeof Coffee> = {
   'public-cafe': Coffee,
   'public-apartment': BedDouble,
   'public-workspace': Laptop,
+  'public-bar': Wine,
+  'public-restaurant': UtensilsCrossed,
 };
 
 const roomDescriptions: Record<string, string> = {
   'public-cafe': 'Espresso, pastries, and low hum. The main hangout.',
   'public-apartment': 'A small lounge corner for quiet co-working.',
   'public-workspace': 'Desks, printers, and focus energy.',
+  'public-bar': 'Dim lights, clinking glasses, and a late-night counter.',
+  'public-restaurant': 'Set tables, warm service, and a proper meal break.',
 };
 
 export interface PublicRoomCardProps {
