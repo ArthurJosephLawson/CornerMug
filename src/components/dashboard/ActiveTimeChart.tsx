@@ -39,8 +39,8 @@ export function ActiveTimeChart({ points }: ActiveTimeChartProps) {
           const value = Math.round(max * ratio);
           return (
             <g key={ratio}>
-              <line x1={padX} y1={y} x2={padX + innerW} y2={y} stroke="currentColor" className="text-charcoal/10 dark:text-white/10" strokeWidth="1" />
-              <text x={4} y={y + 4} fontSize="10" className="fill-charcoal/45 dark:fill-white/45">{value}m</text>
+              <line x1={padX} y1={y} x2={padX + innerW} y2={y} stroke="currentColor" className="text-charcoal/10 dark:text-white/20" strokeWidth="1" />
+              <text x={4} y={y + 4} fontSize="10" className="fill-charcoal/45 dark:fill-white/75">{value}m</text>
             </g>
           );
         })}
@@ -64,14 +64,14 @@ export function ActiveTimeChart({ points }: ActiveTimeChartProps) {
               y={areaBaseline + 16}
               textAnchor="middle"
               fontSize="11"
-              className="fill-charcoal/55 dark:fill-white/55"
+              className="fill-charcoal/55 dark:fill-white/75"
             >
               {point.label}
             </text>
           </g>
         ))}
       </svg>
-      <p className="mt-1 text-xs text-charcoal/45 dark:text-white/45">
+      <p className="mt-1 text-xs text-charcoal/45 dark:text-white/70">
         Daily active time (hangout) tracked from now. Green solid line, last {points.length || 7} days.
       </p>
     </div>

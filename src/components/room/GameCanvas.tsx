@@ -188,6 +188,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
 
     const boot = async () => {
       const definition = resolveRoomDefinition(roomId);
+      if (!definition) return;
       await loader.loadManifest();
       if (disposed) return;
 
