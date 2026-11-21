@@ -1,19 +1,25 @@
-import { BedDouble, Coffee, Laptop, Users, UtensilsCrossed, Wine } from 'lucide-react';
+import { Building2, Coffee, Laptop, Store, Users, UtensilsCrossed, Wine } from 'lucide-react';
 import type { RoomRow } from '@/types/database.types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
 const roomIcons: Record<string, typeof Coffee> = {
+  'public-exterior': Building2,
+  'public-cafe-interior': Coffee,
+  'public-bar-interior': Wine,
+  'public-restaurant-interior': UtensilsCrossed,
   'public-cafe': Coffee,
-  'public-apartment': BedDouble,
   'public-workspace': Laptop,
   'public-bar': Wine,
   'public-restaurant': UtensilsCrossed,
 };
 
 const roomDescriptions: Record<string, string> = {
+  'public-exterior': 'Outside the venue — a fresh-air meet-up spot at the entrance.',
+  'public-cafe-interior': 'Food & Drink pack café interior with counter, tables, and cozy seating.',
+  'public-bar-interior': 'A moody bar interior with counter stools, shelves, and booths.',
+  'public-restaurant-interior': 'Dining room interior with kitchen pass, tables, and service counter.',
   'public-cafe': 'Espresso, pastries, and low hum. The main hangout.',
-  'public-apartment': 'A small lounge corner for quiet co-working.',
   'public-workspace': 'Desks, printers, and focus energy.',
   'public-bar': 'Dim lights, clinking glasses, and a late-night counter.',
   'public-restaurant': 'Set tables, warm service, and a proper meal break.',
