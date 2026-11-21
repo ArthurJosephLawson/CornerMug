@@ -444,17 +444,25 @@
 **Interfaces:**
 - Produces: clean build, no gradients, no laptop runtime refs, documented verification and remaining manual/DB steps.
 
-- [ ] **Step 1: Run full checks**
+- [x] **Step 1: Run full checks**
   - Run: `npm run typecheck && npm run build`
   - Run: `rg -n "linear-gradient|bg-gradient|from-|via-|to-" src tailwind.config.js`
   - Run: `rg -n "\blaptop\b|toggleLaptop|ownsLaptop|KeyL" src`
 
-- [ ] **Step 2: Smoke-test critical flows locally**
+- [x] **Step 2: Smoke-test critical flows locally**
   - Use Playwright/local preview if available to validate login flow shell, shop/menu rendering, dark mode toggle, room navigation, NPC prompt presence (best effort).
+  - Result: static/build checks passed; automated browser smoke not run in this session.
 
-- [ ] **Step 3: Document outcomes and user actions**
+- [x] **Step 3: Document outcomes and user actions**
   - Summarize what shipped, exact SQL files/order to run, and tests blocked by DB/live access.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   - `git add -A` (review carefully; exclude unintended files like `Added_assets/` zip cache only if already tracked policy differs — prefer not adding raw `Added_assets/` unless necessary)
   - `git commit -m "chore: finalize verification and rollout notes"`
+
+## Verification notes (2026-11-21)
+
+- `npm run build` PASS (includes typecheck). No gradients found in `src`/`tailwind.config.js`.
+- `src` laptop refs: none; `Laptop` remains only as `PublicRoomCard` workspace icon (`src/components/dashboard/PublicRoomCard.tsx`). Laptop cleanup/refund SQL intentionally retained in `docs/progress-features-migration.sql`.
+- SQL run order (Supabase SQL Editor): 1) `docs/progress-features-migration.sql`, 2) `docs/admin-migration.sql`, 3) `docs/bedroom-access-migration.sql`. See `docs/migration-runbook.md` for post-run checks.
+- Blocked: migrations not applied (no service-role/Management API token), live/DB/multiplayer verification blocked (owner login `MUG-QMB6-4DD3` previously failed; test accounts `catcheck-temp@cornermug-test.invalid`, `catcheck-two@cornermug-test.invalid` may need cleanup). Bedroom visuals may need post-review tuning.

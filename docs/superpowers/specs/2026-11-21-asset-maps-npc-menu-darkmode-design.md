@@ -1,7 +1,7 @@
 # Asset Maps, NPC Menu, Dark Mode, and Progression Update — Design Spec
 
 **Date:** 2026-11-21  
-**Status:** Draft for review (implementation not started)  
+**Status:** Implemented in repo (Supabase migrations pending apply; live/multiplayer verification blocked without DB access and credentials)  
 **Scope:** Architectural (multiple subsystems: rooms/engine/assets, NPC/menu/shop, progression, charting, access control, theming, migrations)
 
 ## 1. Summary
@@ -176,3 +176,10 @@ Only assets already in `public/sprites` and `Added_assets/` may be used. No unap
 - My Room is personal with working invite flow and restricted access per design.
 - Dark mode toggle works and persists; no UI gradients remain.
 - No unapproved assets/features added. Build and typecheck pass. Migrations and verification steps documented.
+
+## 14. Implementation notes (2026-11-21)
+
+- **Code/build:** implemented and verified with `npm run build` (includes typecheck). No `linear-gradient`/Tailwind gradient utilities in `src` or `tailwind.config.js`. No laptop runtime refs in `src`; intentional `Laptop` icon remains in `src/components/dashboard/PublicRoomCard.tsx` for workspace room card only. Laptop cleanup/refund remains in `docs/progress-features-migration.sql` by design.
+- **SQL to run (Supabase SQL editor):** see `docs/migration-runbook.md`. Recommended order: 1) `docs/progress-features-migration.sql`, 2) `docs/admin-migration.sql`, 3) `docs/bedroom-access-migration.sql`, with post-run checks in runbook.
+- **Blocked verification:** Supabase migrations not applied (no service-role/Management API token). Live/DB checks blocked: owner login `MUG-QMB6-4DD3` previously failed; throwaway accounts `catcheck-temp@cornermug-test.invalid`, `catcheck-two@cornermug-test.invalid` may exist and should be removed by user. Two-account invite/multiplayer, real progress tracking, focus XP persistence, and daily activity accrual require valid access + applied SQL.
+- **Manual review note:** bedroom layout composed from `public/assets/added/pixel-interiors/tiles-and-items.png` may need visual/collision tuning after live/manual review.
