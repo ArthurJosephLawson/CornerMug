@@ -106,3 +106,13 @@ public/sprites/      # pixel art + manifest.json
 ## 🪪 Credits
 
 Created by **Arthur Joseph Lawson** [@monk_mango] — **Scriptmonks**.
+
+## 🔒 Ownership & Copyright
+
+CornerMug is solely owned by **Arthur Joseph Lawson** (chosen/public professional name), Instagram [@Monk_mango](https://instagram.com/Monk_mango), GitHub [ArthurJosephLawson](https://github.com/ArthurJosephLawson), under **Scriptmonks / ScriptMønks**.
+
+- [OWNERSHIP.md](OWNERSHIP.md)
+- [COPYRIGHT.md](COPYRIGHT.md)
+- [docs/product-ownership.md](docs/product-ownership.md)
+
+Copyright (c) 2026 Arthur Joseph Lawson (Scriptmonks / ScriptMønks). All rights reserved. Unauthorized copying, redistribution, or ownership claims are prohibited.
