@@ -288,25 +288,25 @@
 - Produces: catalog includes Kitten (350 XP), 6 dessert unlocks (200/200/250/250/150/150 money), 3 money packs (unchanged). Dessert unlocks purchasable/refundable by money; XP items unchanged.
 - Produces: RPC contract updates for `purchase_item`/`refund_item` (or new RPCs) to accept new IDs and money-priced unlock semantics.
 
-- [ ] **Step 1: Update client catalog/types**
+- [x] **Step 1: Update client catalog/types**
   - Add item ids (stable slugs, e.g. `dessert-cheesecake`, etc.), `priceXp`/`priceMoney` or discriminated pricing fields, icons/image paths, `soldIn: ('shop'|'menu')[]`.
 
-- [ ] **Step 2: Update shop UI**
+- [x] **Step 2: Update shop UI**
   - Render image icons for dessert unlocks; show correct currency per item; buy/refund buttons use correct affordability (`xp` vs `money`) and calls.
 
-- [ ] **Step 3: Update menu UI**
+- [x] **Step 3: Update menu UI**
   - Show same 6 dessert items, money pricing, and purchase/refund behavior consistent with shop.
 
-- [ ] **Step 4: Update SQL/RPC definitions in docs**
+- [x] **Step 4: Update SQL/RPC definitions in docs**
   - Implement server pricing/validation for new items and money unlock buy/refund (refund money for money-bought unlocks). Remove laptop. Keep grants/admin compatibility.
   - Run: `rg -n "laptop" docs/progress-features-migration.sql docs/admin-migration.sql` and update as needed.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
   - Run: `npm run typecheck && npm run build`
   - Run: `rg -n "'laptop'|\"laptop\"" src docs/progress-features-migration.sql docs/admin-migration.sql`
   - Expected: build passes; laptop removed from runtime and updated migrations/docs.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   - `git add src/services/progressService.ts src/pages/ShopPage.tsx src/components/room/NpcMenuBubble.tsx src/components/admin/AdminTerminal.tsx docs/progress-features-migration.sql docs/admin-migration.sql`
   - `git commit -m "feat(shop): add dessert unlocks and money-priced menu purchases"`
 

@@ -74,6 +74,8 @@ export function AdminTerminal({ users, selfId, isOwner, onRefresh }: AdminTermin
           '/give @username 500 xp',
           '/give @username 500 money',
           '/give @username kitten',
+          '/give @username dessert-cheesecake',
+          'items: kitten, money-250/600/1500, dessert-cheesecake, dessert-chocolate-cake, dessert-strawberry-shortcake, dessert-macarons, dessert-croissant, dessert-pancakes',
           '/admin @username',
           '/unadmin @username',
           '/rename @username NewName',

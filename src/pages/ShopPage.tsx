@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/hooks/useToast';
 import { rankProgressForXp } from '@/lib/ranks';
 import {
-  SHOP_ITEMS,
+  SHOP_PAGE_ITEMS,
   purchaseItem,
   refundItem,
   type ShopItem,
@@ -34,9 +34,9 @@ export function ShopPage() {
         owned_items: result.owned_items,
       });
       if (result.already_owned) {
-        showToast(`You already own the ${item.name.toLowerCase()}.`, 'info');
+        showToast(`You already own ${item.name}.`, 'info');
       } else if (item.kind === 'money') {
-        showToast(`Added ${item.moneyAmount} money to your wallet.`, 'success');
+        showToast(`Added ${item.moneyAmount ?? 0} money to your wallet.`, 'success');
       } else if (item.id === 'kitten') {
         showToast('Kitten adopted. It will follow you into every room.', 'success');
       } else {
@@ -47,9 +47,11 @@ export function ShopPage() {
       const message = caught instanceof Error ? caught.message : 'Purchase failed.';
       if (/function|schema cache|does not exist|Could not find|Unknown item/i.test(message)) {
         setMigrationMissing(true);
-        showToast('Shop is not ready yet: run the progress SQL migration first.', 'error');
+        showToast('Shop is not ready yet: run the updated progress SQL migration.', 'error');
       } else if (/Not enough XP/i.test(message)) {
         showToast('Not enough XP for that yet. Keep hanging out.', 'error');
+      } else if (/Not enough money/i.test(message)) {
+        showToast('Not enough money for that treat.', 'error');
       } else {
         showToast(message, 'error');
       }
@@ -68,7 +70,9 @@ export function ShopPage() {
         money: result.money,
         owned_items: result.owned_items,
       });
-      if (result.deducted_money > 0) {
+      if ((result.refunded_money ?? 0) > 0) {
+        showToast(`Refunded ${item.name} for ${result.refunded_money} money.`, 'success');
+      } else if (result.deducted_money > 0) {
         showToast(
           `Refunded ${item.name}: -${result.deducted_money} money, +${result.refunded} XP.`,
           'success',
@@ -81,7 +85,7 @@ export function ShopPage() {
       const message = caught instanceof Error ? caught.message : 'Refund failed.';
       if (/function|schema cache|does not exist|Could not find/i.test(message)) {
         setMigrationMissing(true);
-        showToast('Refunds are not ready yet: run the progress SQL migration first.', 'error');
+        showToast('Refunds are not ready yet: run the updated progress SQL migration.', 'error');
       } else {
         showToast(message, 'error');
       }
@@ -94,18 +98,18 @@ export function ShopPage() {
     <div className="space-y-6">
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/45">Corner shop</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/45 dark:text-white/45">Corner shop</p>
           <h1 className="mt-1 text-2xl font-bold">Spend your study energy</h1>
-          <p className="mt-1 text-sm text-charcoal/55">
-            XP comes from time in rooms. Money is your wallet balance.
+          <p className="mt-1 text-sm text-charcoal/55 dark:text-white/60">
+            XP comes from time in rooms and focus sessions. Money buys café treats.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="pill bg-white text-charcoal shadow-soft">
+          <span className="pill bg-white text-charcoal shadow-soft dark:bg-white/10 dark:text-[#f4f1ea]">
             <Coins className="h-3.5 w-3.5 text-butter-deep" />
             <span className="font-semibold">{profile.money.toLocaleString()}</span> money
           </span>
-          <span className="pill bg-charcoal text-ivory">
+          <span className="pill bg-charcoal text-ivory dark:bg-lavender dark:text-[#14141a]">
             <Sparkles className="h-3.5 w-3.5 text-lavender" />
             {profile.xp.toLocaleString()} XP
           </span>
@@ -122,7 +126,7 @@ export function ShopPage() {
               <ShoppingBag className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/45">
+              <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/45 dark:text-white/45">
                 {progress.rank.name} · rank {progress.rank.level}
               </p>
               <p className="font-bold">
@@ -133,13 +137,13 @@ export function ShopPage() {
             </div>
           </div>
           <div className="min-w-[12rem] flex-1 sm:max-w-xs">
-            <div className="h-2.5 overflow-hidden rounded-full bg-white shadow-inner">
+            <div className="h-2.5 overflow-hidden rounded-full bg-white shadow-inner dark:bg-white/10">
               <div
                 className="h-full rounded-full transition-[width] duration-700"
                 style={{ width: `${progress.percent}%`, backgroundColor: progress.rank.color }}
               />
             </div>
-            <p className="mt-1 text-right text-[11px] font-semibold text-charcoal/45">
+            <p className="mt-1 text-right text-[11px] font-semibold text-charcoal/45 dark:text-white/45">
               {progress.isMax ? '500 / 500' : `${progress.xpIntoRank} / 500 XP`}
             </p>
           </div>
@@ -159,14 +163,18 @@ export function ShopPage() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold">Items</h2>
-          <span className="text-xs text-charcoal/45">{profile.xp.toLocaleString()} XP available</span>
+          <span className="text-xs text-charcoal/45 dark:text-white/45">
+            {profile.xp.toLocaleString()} XP · {profile.money.toLocaleString()} money
+          </span>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {SHOP_ITEMS.map((item) => {
+          {SHOP_PAGE_ITEMS.map((item) => {
             const owned = item.kind === 'unlock' && ownedItems.has(item.id);
-            const affordable = profile.xp >= item.priceXp;
+            const affordable = item.currency === 'money' ? profile.money >= item.price : profile.xp >= item.price;
             const refundable =
-              item.kind === 'unlock' ? owned : profile.money >= (item.moneyAmount ?? 0);
+              item.kind === 'unlock'
+                ? owned
+                : profile.money >= (item.moneyAmount ?? 0);
             const Icon = item.id === 'kitten' ? Cat : Coins;
             return (
               <Card
@@ -174,15 +182,21 @@ export function ShopPage() {
                 className={`flex h-full flex-col gap-3 ${owned ? 'border-sage-deep/30 bg-sage/15' : ''}`}
               >
                 <div className="flex items-start gap-3">
-                  <span
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                      item.kind === 'unlock'
-                        ? 'bg-lavender/50 text-charcoal'
-                        : 'bg-butter/60 text-charcoal'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
+                  {item.image ? (
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-butter/40 dark:bg-white/10">
+                      <img src={item.image} alt="" className="h-9 w-9 object-contain [image-rendering:pixelated]" />
+                    </span>
+                  ) : (
+                    <span
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                        item.kind === 'unlock'
+                          ? 'bg-lavender/50 text-charcoal'
+                          : 'bg-butter/60 text-charcoal'
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-bold">{item.name}</h3>
@@ -192,7 +206,7 @@ export function ShopPage() {
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-1 text-sm leading-relaxed text-charcoal/60">
+                    <p className="mt-1 text-sm leading-relaxed text-charcoal/60 dark:text-white/60">
                       {item.description}
                     </p>
                   </div>
@@ -200,8 +214,12 @@ export function ShopPage() {
 
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
                   <span className="flex items-center gap-1.5 text-sm font-bold">
-                    <Sparkles className="h-4 w-4 text-lavender-deep" />
-                    {item.priceXp} XP
+                    {item.currency === 'money' ? (
+                      <Coins className="h-4 w-4 text-butter-deep" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-lavender-deep" />
+                    )}
+                    {item.price} {item.currency === 'money' ? 'money' : 'XP'}
                   </span>
                   <div className="flex items-center gap-2">
                     {refundable ? (
@@ -219,13 +237,11 @@ export function ShopPage() {
                     <Button
                       variant={owned ? 'outline' : 'primary'}
                       size="sm"
-                      disabled={
-                        owned || !affordable || busyId !== null || refundingId !== null
-                      }
+                      disabled={owned || !affordable || busyId !== null || refundingId !== null}
                       loading={busyId === item.id}
                       onClick={() => void handleBuy(item)}
                     >
-                      {owned ? 'Owned' : affordable ? 'Buy' : 'Need more XP'}
+                      {owned ? 'Owned' : affordable ? 'Buy' : item.currency === 'money' ? 'Need money' : 'Need more XP'}
                     </Button>
                   </div>
                 </div>
@@ -236,8 +252,8 @@ export function ShopPage() {
       </section>
 
       <p className="text-xs text-charcoal/45 dark:text-white/45">
-        Unlocks are permanent. The kitten follows you into every room. Refunds return the item and
-        its full XP price; money packs return their XP price and take back the money.
+        Kitten is an XP unlock. Dessert treats cost money and can be bought in the shop or from cooks
+        in Café, Bar, and Restaurant. Money packs cost XP and add money. Refunds return what you paid.
       </p>
     </div>
   );

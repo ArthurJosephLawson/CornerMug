@@ -282,7 +282,14 @@ begin
   end if;
 
   if v_item is not null then
-    if v_item = 'laptop' or v_item = 'kitten' then
+    if v_item = 'kitten'
+       or v_item = 'dessert-cheesecake'
+       or v_item = 'dessert-chocolate-cake'
+       or v_item = 'dessert-strawberry-shortcake'
+       or v_item = 'dessert-macarons'
+       or v_item = 'dessert-croissant'
+       or v_item = 'dessert-pancakes'
+    then
       if not (v_item = any (v_row.owned_items)) then
         v_row.owned_items := array_append(v_row.owned_items, v_item);
         v_granted := v_item;
@@ -297,7 +304,7 @@ begin
       v_money := v_money + 1500;
       v_granted := v_item;
     else
-      raise exception 'Unknown item. Use laptop, kitten, money-250, money-600, or money-1500.';
+      raise exception 'Unknown item. Use kitten, money-250, money-600, money-1500, or dessert-cheesecake, dessert-chocolate-cake, dessert-strawberry-shortcake, dessert-macarons, dessert-croissant, dessert-pancakes.';
     end if;
   end if;
 

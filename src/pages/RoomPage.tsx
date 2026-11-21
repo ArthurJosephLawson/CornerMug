@@ -20,7 +20,7 @@ import { usePomodoro } from '@/context/PomodoroContext';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { showToast } from '@/hooks/useToast';
 import { recordHangoutTime } from '@/services/statsService';
-import { awardHangout } from '@/services/progressService';
+import { MENU_ITEMS, awardHangout, purchaseItem } from '@/services/progressService';
 import { rankForXp } from '@/lib/ranks';
 import { isPublicRoom, resolveRoomDefinition } from '@/config/rooms.config';
 import { ROOM_CAPACITY, baseRoomId } from '@/types/network.types';
@@ -37,14 +37,12 @@ import { AvatarPreview } from '@/components/ui/AvatarPreview';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
-const NPC_MENU_ITEMS: NpcMenuItem[] = [
-  { id: 'dessert-cheesecake', name: 'Cheesecake Treat', priceMoney: 200, image: '/assets/added/desserts/Cheesecake.png' },
-  { id: 'dessert-chocolate-cake', name: 'Chocolate Cake', priceMoney: 200, image: '/assets/added/desserts/ChocolateCake.png' },
-  { id: 'dessert-strawberry-shortcake', name: 'Strawberry Shortcake', priceMoney: 250, image: '/assets/added/desserts/StrawberryShortcake.png' },
-  { id: 'dessert-macarons', name: 'Macarons', priceMoney: 250, image: '/assets/added/desserts/Macrons.png' },
-  { id: 'dessert-croissant', name: 'Croissant', priceMoney: 150, image: '/assets/added/desserts/Croissant.png' },
-  { id: 'dessert-pancakes', name: 'Pancakes', priceMoney: 150, image: '/assets/added/desserts/Pancakes.png' },
-];
+const NPC_MENU_ITEMS: NpcMenuItem[] = MENU_ITEMS.map((item) => ({
+  id: item.id,
+  name: item.name,
+  priceMoney: item.price,
+  image: item.image ?? '',
+}));
 
 export function RoomPage() {
   const { roomId = '' } = useParams();
@@ -116,10 +114,34 @@ export function RoomPage() {
   }, [menuNpc, nearbyNpc]);
 
   const handleMenuBuy = useCallback(async (itemId: string) => {
-    // Wired in Task 8 (money-priced unlock purchases).
-    void itemId;
-    showToast('Menu purchases will be ready after shop updates.', 'info');
-  }, []);
+    if (menuBusyId) return;
+    setMenuBusyId(itemId);
+    try {
+      const result = await purchaseItem(itemId as never);
+      applyProgress({
+        xp: result.xp,
+        money: result.money,
+        owned_items: result.owned_items,
+      });
+      const item = MENU_ITEMS.find((entry) => entry.id === itemId);
+      if (result.already_owned) {
+        showToast(`${item?.name ?? 'That treat'} is already unlocked.`, 'info');
+      } else {
+        showToast(`${item?.name ?? 'Treat'} unlocked.`, 'success');
+      }
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Purchase failed.';
+      if (/function|schema cache|does not exist|Could not find|Unknown item/i.test(message)) {
+        showToast('Menu is not ready yet: run the updated progress SQL migration.', 'error');
+      } else if (/Not enough money/i.test(message)) {
+        showToast('Not enough money for that treat.', 'error');
+      } else {
+        showToast(message, 'error');
+      }
+    } finally {
+      setMenuBusyId(null);
+    }
+  }, [applyProgress, menuBusyId]);
 
   useEffect(() => {
     elapsedRef.current = elapsedSeconds;
