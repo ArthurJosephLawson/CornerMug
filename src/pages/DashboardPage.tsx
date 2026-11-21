@@ -76,7 +76,7 @@ export function DashboardPage() {
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold">Rooms</h2>
           <span className="pill bg-sage/60 text-charcoal">
-            <Sparkles className="h-3.5 w-3.5" /> New maps on top
+            <Sparkles className="h-3.5 w-3.5" /> Home maps
           </span>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

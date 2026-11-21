@@ -142,7 +142,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 200,
     currency: 'money',
     kind: 'consumable',
-    image: '/assets/added/desserts/Cheesecake.png',
+    image: '',
     soldIn: ['shop', 'menu'],
   },
   {
