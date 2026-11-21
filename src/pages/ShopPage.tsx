@@ -33,12 +33,14 @@ export function ShopPage() {
         money: result.money,
         owned_items: result.owned_items,
       });
-      if (result.already_owned) {
+      if (result.already_owned && item.kind !== 'consumable') {
         showToast(`You already own ${item.name}.`, 'info');
       } else if (item.kind === 'money') {
         showToast(`Added ${item.moneyAmount ?? 0} money to your wallet.`, 'success');
       } else if (item.id === 'kitten') {
         showToast('Kitten adopted. It will follow you into every room.', 'success');
+      } else if (item.kind === 'consumable') {
+        showToast(`${item.name} eaten.`, 'success');
       } else {
         showToast(`${item.name} unlocked.`, 'success');
       }
@@ -174,7 +176,9 @@ export function ShopPage() {
             const refundable =
               item.kind === 'unlock'
                 ? owned
-                : profile.money >= (item.moneyAmount ?? 0);
+                : item.kind === 'money'
+                  ? profile.money >= (item.moneyAmount ?? 0)
+                  : false;
             const Icon = item.id === 'kitten' ? Cat : Coins;
             return (
               <Card
@@ -241,7 +245,15 @@ export function ShopPage() {
                       loading={busyId === item.id}
                       onClick={() => void handleBuy(item)}
                     >
-                      {owned ? 'Owned' : affordable ? 'Buy' : item.currency === 'money' ? 'Need money' : 'Need more XP'}
+                      {owned
+                        ? 'Owned'
+                        : affordable
+                          ? item.kind === 'consumable'
+                            ? 'Eat'
+                            : 'Buy'
+                          : item.currency === 'money'
+                            ? 'Need money'
+                            : 'Need more XP'}
                     </Button>
                   </div>
                 </div>
@@ -252,8 +264,9 @@ export function ShopPage() {
       </section>
 
       <p className="text-xs text-charcoal/45 dark:text-white/45">
-        Kitten is an XP unlock. Dessert treats cost money and can be bought in the shop or from cooks
-        in Café, Bar, and Restaurant. Money packs cost XP and add money. Refunds return what you paid.
+        Kitten is an XP unlock. Food treats cost money and can be bought infinitely in the shop or
+        from the cook in Café. Money packs cost XP and add money. Refunds return what you paid for
+        refundable items.
       </p>
     </div>
   );

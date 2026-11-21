@@ -7,6 +7,7 @@ export interface NpcMenuItem {
   name: string;
   priceMoney: number;
   image: string;
+  consumable?: boolean;
 }
 
 export interface NpcMenuBubbleProps {
@@ -61,7 +62,7 @@ export function NpcMenuBubble({
 
         <div className="grid grid-cols-2 gap-2">
           {items.map((item) => {
-            const owned = ownedItems.includes(item.id);
+            const owned = !item.consumable && ownedItems.includes(item.id);
             const affordable = money >= item.priceMoney;
             return (
               <div
@@ -85,7 +86,7 @@ export function NpcMenuBubble({
                   loading={busyId === item.id}
                   onClick={() => onBuy(item.id)}
                 >
-                  {owned ? 'Owned' : affordable ? 'Buy' : 'Need money'}
+                  {owned ? 'Owned' : affordable ? (item.consumable ? 'Eat' : 'Buy') : 'Need money'}
                 </Button>
               </div>
             );

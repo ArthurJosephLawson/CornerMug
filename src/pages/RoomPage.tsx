@@ -20,7 +20,7 @@ import { usePomodoro } from '@/context/PomodoroContext';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { showToast } from '@/hooks/useToast';
 import { recordHangoutTime } from '@/services/statsService';
-import { MENU_ITEMS, awardHangout, purchaseItem } from '@/services/progressService';
+import { MENU_ITEMS, awardHangout, foodEffectsForPrice, isFoodItem, purchaseItem } from '@/services/progressService';
 import { rankForXp } from '@/lib/ranks';
 import { isPublicRoom, resolveRoomDefinition } from '@/config/rooms.config';
 import { ROOM_CAPACITY, baseRoomId } from '@/types/network.types';
@@ -42,6 +42,7 @@ const NPC_MENU_ITEMS: NpcMenuItem[] = MENU_ITEMS.map((item) => ({
   name: item.name,
   priceMoney: item.price,
   image: item.image ?? '',
+  consumable: item.kind === 'consumable',
 }));
 
 export function RoomPage() {
@@ -62,6 +63,33 @@ export function RoomPage() {
   const [menuNpc, setMenuNpc] = useState<NearbyNpcState | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [menuBusyId, setMenuBusyId] = useState<string | null>(null);
+  const [hunger, setHunger] = useState(70);
+  const [health, setHealth] = useState(70);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    try {
+      const raw = window.localStorage.getItem(`cornermug:vitals:${profile.id}`);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { hunger?: number; health?: number };
+      if (typeof parsed.hunger === 'number') setHunger(Math.max(0, Math.min(100, parsed.hunger)));
+      if (typeof parsed.health === 'number') setHealth(Math.max(0, Math.min(100, parsed.health)));
+    } catch {
+      // Ignore invalid local vitals.
+    }
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    try {
+      window.localStorage.setItem(
+        `cornermug:vitals:${profile.id}`,
+        JSON.stringify({ hunger, health }),
+      );
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [profile?.id, hunger, health]);
 
   const handleNearSeat = useCallback((seat: SeatAnchor | null) => setNearSeat(seat), []);
   const handleSeated = useCallback((next: boolean) => setSeated(next), []);
@@ -125,7 +153,18 @@ export function RoomPage() {
         owned_items: result.owned_items,
       });
       const item = MENU_ITEMS.find((entry) => entry.id === itemId);
-      if (result.already_owned) {
+      const food = isFoodItem(itemId);
+      if (food && item) {
+        if (result.already_owned && result.spent <= 0) {
+          showToast('Menu is not ready yet: run the updated progress SQL migration.', 'error');
+        } else {
+          const effects = foodEffectsForPrice(item.price);
+          setHunger((current) => Math.min(100, current + effects.hunger));
+          setHealth((current) => Math.min(100, current + effects.health));
+          canvasRef.current?.showSpeechBubble(`${item.name} eaten`);
+          showToast(`${item.name} eaten.`, 'success');
+        }
+      } else if (result.already_owned) {
         showToast(`${item?.name ?? 'That treat'} is already unlocked.`, 'info');
       } else {
         showToast(`${item?.name ?? 'Treat'} unlocked.`, 'success');
@@ -295,6 +334,34 @@ export function RoomPage() {
 
   const occupants = connection.peers.length + 1;
   const leaveRoom = () => navigate('/');
+  const vitalsBars = (
+    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="rounded-xl border border-charcoal/10 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+        <div className="mb-1 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-charcoal/55 dark:text-white/60">
+          <span>Hunger</span>
+          <span>{Math.round(hunger)}%</span>
+        </div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-charcoal/10 dark:bg-white/10">
+          <div
+            className="h-full rounded-full bg-green-500 transition-[width] duration-300"
+            style={{ width: `${Math.max(0, Math.min(100, hunger))}%` }}
+          />
+        </div>
+      </div>
+      <div className="rounded-xl border border-charcoal/10 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+        <div className="mb-1 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-charcoal/55 dark:text-white/60">
+          <span>Health</span>
+          <span>{Math.round(health)}%</span>
+        </div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-charcoal/10 dark:bg-white/10">
+          <div
+            className="h-full rounded-full bg-red-500 transition-[width] duration-300"
+            style={{ width: `${Math.max(0, Math.min(100, health))}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
 
   if (isPhone) {
     return (
@@ -472,6 +539,35 @@ export function RoomPage() {
           ) : null}
         </div>
 
+        <div className="shrink-0 border-t border-white/10 bg-charcoal px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] pt-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg bg-white/10 px-2 py-1.5">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-ivory/70">
+                <span>Hunger</span>
+                <span>{Math.round(hunger)}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-green-500 transition-[width] duration-300"
+                  style={{ width: `${Math.max(0, Math.min(100, hunger))}%` }}
+                />
+              </div>
+            </div>
+            <div className="rounded-lg bg-white/10 px-2 py-1.5">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-ivory/70">
+                <span>Health</span>
+                <span>{Math.round(health)}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-red-500 transition-[width] duration-300"
+                  style={{ width: `${Math.max(0, Math.min(100, health))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <BottomSheet open={hudMenuOpen} onClose={() => setHudMenuOpen(false)} title="Room menu">
           <div className="mb-4">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-charcoal/45">
@@ -634,6 +730,8 @@ export function RoomPage() {
           />
         </div>
       </div>
+
+      {vitalsBars}
 
       <p className="text-xs text-charcoal/45 dark:text-white/45">
         {isTouchDevice ? (

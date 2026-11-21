@@ -5,7 +5,7 @@
 -- Includes:
 --   * progress columns
 --   * hangout XP awards
---   * server-priced purchases/refunds (XP and money unlocks + money packs)
+--   * server-priced purchases/refunds (XP unlocks, money packs, consumable food buys)
 --   * laptop removal/refund migration (+500 XP once for owned laptop)
 
 -- ---------------------------------------------------------------------------
@@ -111,12 +111,12 @@ $$;
 -- 4. purchase_item: server-priced shop/menu
 -- ---------------------------------------------------------------------------
 -- kitten                    -> permanent unlock, 350 XP
--- dessert-cheesecake        -> permanent unlock, 200 money
--- dessert-chocolate-cake    -> permanent unlock, 200 money
--- dessert-strawberry-shortcake -> permanent unlock, 250 money
--- dessert-macarons          -> permanent unlock, 250 money
--- dessert-croissant         -> permanent unlock, 150 money
--- dessert-pancakes          -> permanent unlock, 150 money
+-- dessert-cheesecake        -> consumable food, 200 money (infinite, not owned)
+-- dessert-chocolate-cake    -> consumable food, 200 money (infinite, not owned)
+-- dessert-strawberry-shortcake -> consumable food, 250 money (infinite, not owned)
+-- dessert-macarons          -> consumable food, 250 money (infinite, not owned)
+-- dessert-croissant         -> consumable food, 150 money (infinite, not owned)
+-- dessert-pancakes          -> consumable food, 150 money (infinite, not owned)
 -- money-250                 -> +250 money for 100 XP
 -- money-600                 -> +600 money for 200 XP
 -- money-1500                -> +1500 money for 450 XP
@@ -130,7 +130,7 @@ declare
   v_uid       uuid := auth.uid();
   v_price     integer := 0;
   v_amount    integer := 0;
-  v_kind      text; -- xp_unlock | money_unlock | money_pack
+  v_kind      text; -- xp_unlock | consumable | money_pack
   v_currency  text; -- xp | money
   v_row       public.users%rowtype;
 begin
@@ -141,17 +141,17 @@ begin
   if p_item = 'kitten' then
     v_price := 350; v_kind := 'xp_unlock'; v_currency := 'xp';
   elsif p_item = 'dessert-cheesecake' then
-    v_price := 200; v_kind := 'money_unlock'; v_currency := 'money';
+    v_price := 200; v_kind := 'consumable'; v_currency := 'money';
   elsif p_item = 'dessert-chocolate-cake' then
-    v_price := 200; v_kind := 'money_unlock'; v_currency := 'money';
+    v_price := 200; v_kind := 'consumable'; v_currency := 'money';
   elsif p_item = 'dessert-strawberry-shortcake' then
-    v_price := 250; v_kind := 'money_unlock'; v_currency := 'money';
+    v_price := 250; v_kind := 'consumable'; v_currency := 'money';
   elsif p_item = 'dessert-macarons' then
-    v_price := 250; v_kind := 'money_unlock'; v_currency := 'money';
+    v_price := 250; v_kind := 'consumable'; v_currency := 'money';
   elsif p_item = 'dessert-croissant' then
-    v_price := 150; v_kind := 'money_unlock'; v_currency := 'money';
+    v_price := 150; v_kind := 'consumable'; v_currency := 'money';
   elsif p_item = 'dessert-pancakes' then
-    v_price := 150; v_kind := 'money_unlock'; v_currency := 'money';
+    v_price := 150; v_kind := 'consumable'; v_currency := 'money';
   elsif p_item = 'money-250' then
     v_price := 100; v_amount := 250; v_kind := 'money_pack'; v_currency := 'xp';
   elsif p_item = 'money-600' then
@@ -167,7 +167,7 @@ begin
     raise exception 'Profile not found';
   end if;
 
-  if v_kind in ('xp_unlock', 'money_unlock') and p_item = any (v_row.owned_items) then
+  if v_kind = 'xp_unlock' and p_item = any (v_row.owned_items) then
     return jsonb_build_object(
       'xp', v_row.xp,
       'money', v_row.money,
@@ -186,11 +186,10 @@ begin
            last_seen_at = now()
      where id = v_uid
     returning * into v_row;
-  elsif v_kind = 'money_unlock' then
+  elsif v_kind = 'consumable' then
     if v_row.money < v_price then raise exception 'Not enough money'; end if;
     update public.users
        set money = money - v_price,
-           owned_items = array_append(owned_items, p_item),
            last_seen_at = now()
      where id = v_uid
     returning * into v_row;
@@ -219,7 +218,7 @@ $$;
 -- 5. refund_item: return purchases (XP/money depending on item type)
 -- ---------------------------------------------------------------------------
 -- XP unlocks (kitten)      -> remove item, refund XP.
--- Money unlocks (desserts) -> remove item, refund money.
+-- Consumable food          -> cannot be refunded (infinite buys/eats).
 -- Money packs              -> deduct money, refund XP.
 -- Buy/refund is net-neutral so it cannot mint value.
 create or replace function public.refund_item(p_item text)
@@ -232,7 +231,7 @@ declare
   v_uid      uuid := auth.uid();
   v_price    integer := 0;
   v_amount   integer := 0;
-  v_kind     text; -- xp_unlock | money_unlock | money_pack
+  v_kind     text; -- xp_unlock | consumable | money_pack
   v_row      public.users%rowtype;
 begin
   if v_uid is null then
@@ -242,17 +241,17 @@ begin
   if p_item = 'kitten' then
     v_price := 350; v_kind := 'xp_unlock';
   elsif p_item = 'dessert-cheesecake' then
-    v_price := 200; v_kind := 'money_unlock';
+    v_price := 200; v_kind := 'consumable';
   elsif p_item = 'dessert-chocolate-cake' then
-    v_price := 200; v_kind := 'money_unlock';
+    v_price := 200; v_kind := 'consumable';
   elsif p_item = 'dessert-strawberry-shortcake' then
-    v_price := 250; v_kind := 'money_unlock';
+    v_price := 250; v_kind := 'consumable';
   elsif p_item = 'dessert-macarons' then
-    v_price := 250; v_kind := 'money_unlock';
+    v_price := 250; v_kind := 'consumable';
   elsif p_item = 'dessert-croissant' then
-    v_price := 150; v_kind := 'money_unlock';
+    v_price := 150; v_kind := 'consumable';
   elsif p_item = 'dessert-pancakes' then
-    v_price := 150; v_kind := 'money_unlock';
+    v_price := 150; v_kind := 'consumable';
   elsif p_item = 'money-250' then
     v_price := 100; v_amount := 250; v_kind := 'money_pack';
   elsif p_item = 'money-600' then
@@ -287,25 +286,8 @@ begin
       'deducted_money', 0,
       'item', p_item
     );
-  elsif v_kind = 'money_unlock' then
-    if not (p_item = any (v_row.owned_items)) then
-      raise exception 'You do not own that item';
-    end if;
-    update public.users
-       set money = money + v_price,
-           owned_items = array_remove(owned_items, p_item),
-           last_seen_at = now()
-     where id = v_uid
-    returning * into v_row;
-    return jsonb_build_object(
-      'xp', v_row.xp,
-      'money', v_row.money,
-      'owned_items', to_jsonb(v_row.owned_items),
-      'refunded', 0,
-      'refunded_money', v_price,
-      'deducted_money', 0,
-      'item', p_item
-    );
+  elsif v_kind = 'consumable' then
+    raise exception 'Food items cannot be refunded';
   else
     if v_row.money < v_amount then
       raise exception 'You need % money to refund this pack', v_amount;

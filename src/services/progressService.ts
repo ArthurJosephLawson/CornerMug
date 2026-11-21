@@ -119,7 +119,7 @@ export interface ShopItem {
   description: string;
   price: number;
   currency: 'xp' | 'money';
-  kind: 'unlock' | 'money';
+  kind: 'unlock' | 'money' | 'consumable';
   moneyAmount?: number;
   image?: string;
   soldIn: Array<'shop' | 'menu'>;
@@ -138,40 +138,40 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     id: 'dessert-cheesecake',
     name: 'Cheesecake Treat',
-    description: 'A creamy slice for your café collection.',
+    description: 'A creamy slice that restores hunger and health.',
     price: 200,
     currency: 'money',
-    kind: 'unlock',
+    kind: 'consumable',
     image: '/assets/added/desserts/Cheesecake.png',
     soldIn: ['shop', 'menu'],
   },
   {
     id: 'dessert-chocolate-cake',
     name: 'Chocolate Cake',
-    description: 'Rich chocolate layers and a sweet unlock.',
+    description: 'Rich chocolate layers that boost hunger and health.',
     price: 200,
     currency: 'money',
-    kind: 'unlock',
+    kind: 'consumable',
     image: '/assets/added/desserts/ChocolateCake.png',
     soldIn: ['shop', 'menu'],
   },
   {
     id: 'dessert-strawberry-shortcake',
     name: 'Strawberry Shortcake',
-    description: 'Soft sponge, cream, and strawberries.',
+    description: 'Soft sponge, cream, and strawberries to refuel you.',
     price: 250,
     currency: 'money',
-    kind: 'unlock',
+    kind: 'consumable',
     image: '/assets/added/desserts/StrawberryShortcake.png',
     soldIn: ['shop', 'menu'],
   },
   {
     id: 'dessert-macarons',
     name: 'Macarons',
-    description: 'A colourful box of delicate macarons.',
+    description: 'A colourful box of delicate macarons for a sweet boost.',
     price: 250,
     currency: 'money',
-    kind: 'unlock',
+    kind: 'consumable',
     image: '/assets/added/desserts/Macrons.png',
     soldIn: ['shop', 'menu'],
   },
@@ -181,17 +181,17 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: 'Buttery, flaky, and fresh from the counter.',
     price: 150,
     currency: 'money',
-    kind: 'unlock',
+    kind: 'consumable',
     image: '/assets/added/desserts/Croissant.png',
     soldIn: ['shop', 'menu'],
   },
   {
     id: 'dessert-pancakes',
     name: 'Pancakes',
-    description: 'A warm stack for a cosy break.',
+    description: 'A warm stack for a cosy break and quick refuel.',
     price: 150,
     currency: 'money',
-    kind: 'unlock',
+    kind: 'consumable',
     image: '/assets/added/desserts/Pancakes.png',
     soldIn: ['shop', 'menu'],
   },
@@ -229,3 +229,18 @@ export const SHOP_ITEMS: ShopItem[] = [
 
 export const MENU_ITEMS = SHOP_ITEMS.filter((item) => item.soldIn.includes('menu'));
 export const SHOP_PAGE_ITEMS = SHOP_ITEMS.filter((item) => item.soldIn.includes('shop'));
+
+export const FOOD_ITEM_IDS = new Set(
+  SHOP_ITEMS.filter((item) => item.kind === 'consumable').map((item) => item.id),
+);
+
+export function isFoodItem(itemId: string): boolean {
+  return FOOD_ITEM_IDS.has(itemId as ShopItemId);
+}
+
+export function foodEffectsForPrice(price: number): { hunger: number; health: number } {
+  return {
+    hunger: Math.max(1, Math.round(price / 5)),
+    health: Math.max(1, Math.round(price / 10)),
+  };
+}

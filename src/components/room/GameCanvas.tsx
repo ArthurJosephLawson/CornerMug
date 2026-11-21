@@ -84,6 +84,8 @@ export interface GameCanvasHandle {
   getNpcScreenPosition: (npcId: string) => { x: number; y: number } | null;
   /** Get nearest interactable NPC, if any. */
   getNearestNpc: () => NearbyNpcState | null;
+  /** Show a short speech bubble above the local player. */
+  showSpeechBubble: (text: string, durationMs?: number) => void;
 }
 
 /**
@@ -126,6 +128,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
   const interactRequestRef = useRef(false);
   const npcScreenPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const nearestNpcRef = useRef<NearbyNpcState | null>(null);
+  const speechBubbleRef = useRef<{ text: string; until: number } | null>(null);
 
   useImperativeHandle(
     ref,
@@ -138,6 +141,9 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       },
       getNpcScreenPosition: (npcId: string) => npcScreenPositionsRef.current.get(npcId) ?? null,
       getNearestNpc: () => nearestNpcRef.current,
+      showSpeechBubble: (text: string, durationMs = 2200) => {
+        speechBubbleRef.current = { text, until: performance.now() + durationMs };
+      },
     }),
     [],
   );
@@ -739,6 +745,49 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
 
         drawNameTag(player.state, xpRef.current);
         for (const avatar of remotes.values()) drawNameTag(avatar.player.state, avatar.xp);
+
+        const bubble = speechBubbleRef.current;
+        if (bubble) {
+          if (performance.now() > bubble.until) {
+            speechBubbleRef.current = null;
+          } else {
+            const text = bubble.text;
+            const x = Math.round(player.state.position.x);
+            const y = Math.round(player.state.position.y - CHARACTER_PIVOT_Y - 22);
+            context.font = '600 8px "Plus Jakarta Sans", Inter, sans-serif';
+            context.textAlign = 'center';
+            context.textBaseline = 'bottom';
+            const textWidth = context.measureText(text).width;
+            const padX = 5;
+            const padY = 3;
+            const boxW = Math.ceil(textWidth + padX * 2);
+            const boxH = 12;
+            const boxX = Math.round(x - boxW / 2);
+            const boxY = y - boxH - padY;
+            context.fillStyle = 'rgba(255, 250, 240, 0.96)';
+            context.strokeStyle = 'rgba(30, 30, 36, 0.18)';
+            context.lineWidth = 1;
+            context.beginPath();
+            const r = 4;
+            context.moveTo(boxX + r, boxY);
+            context.lineTo(boxX + boxW - r, boxY);
+            context.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + r);
+            context.lineTo(boxX + boxW, boxY + boxH - r);
+            context.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - r, boxY + boxH);
+            context.lineTo(x + 3, boxY + boxH);
+            context.lineTo(x, boxY + boxH + 4);
+            context.lineTo(x - 3, boxY + boxH);
+            context.lineTo(boxX + r, boxY + boxH);
+            context.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - r);
+            context.lineTo(boxX, boxY + r);
+            context.quadraticCurveTo(boxX, boxY, boxX + r, boxY);
+            context.closePath();
+            context.fill();
+            context.stroke();
+            context.fillStyle = '#1E1E24';
+            context.fillText(text, x, y - padY + 1);
+          }
+        }
 
         camera.resetTransform(context);
       };
