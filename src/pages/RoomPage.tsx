@@ -6,6 +6,7 @@ import {
   Copy,
   LogOut,
   Maximize2,
+  MessageCircle,
   Minimize2,
   MoreHorizontal,
   RotateCw,
@@ -25,7 +26,8 @@ import { isPublicRoom, resolveRoomDefinition } from '@/config/rooms.config';
 import { ROOM_CAPACITY, baseRoomId } from '@/types/network.types';
 import type { SeatAnchor } from '@/types/engine.types';
 import { AmbientMixer } from '@/components/room/AmbientMixer';
-import { GameCanvas, type GameCanvasHandle } from '@/components/room/GameCanvas';
+import { GameCanvas, type GameCanvasHandle, type NearbyNpcState } from '@/components/room/GameCanvas';
+import { NpcMenuBubble, type NpcMenuItem } from '@/components/room/NpcMenuBubble';
 import { PomodoroWidget } from '@/components/room/PomodoroWidget';
 import { RoomChatDrawer } from '@/components/room/RoomChatDrawer';
 import { RoomTopBar } from '@/components/room/RoomTopBar';
@@ -34,6 +36,15 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { AvatarPreview } from '@/components/ui/AvatarPreview';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+
+const NPC_MENU_ITEMS: NpcMenuItem[] = [
+  { id: 'dessert-cheesecake', name: 'Cheesecake Treat', priceMoney: 200, image: '/assets/added/desserts/Cheesecake.png' },
+  { id: 'dessert-chocolate-cake', name: 'Chocolate Cake', priceMoney: 200, image: '/assets/added/desserts/ChocolateCake.png' },
+  { id: 'dessert-strawberry-shortcake', name: 'Strawberry Shortcake', priceMoney: 250, image: '/assets/added/desserts/StrawberryShortcake.png' },
+  { id: 'dessert-macarons', name: 'Macarons', priceMoney: 250, image: '/assets/added/desserts/Macrons.png' },
+  { id: 'dessert-croissant', name: 'Croissant', priceMoney: 150, image: '/assets/added/desserts/Croissant.png' },
+  { id: 'dessert-pancakes', name: 'Pancakes', priceMoney: 150, image: '/assets/added/desserts/Pancakes.png' },
+];
 
 export function RoomPage() {
   const { roomId = '' } = useParams();
@@ -49,9 +60,18 @@ export function RoomPage() {
   const canvasRef = useRef<GameCanvasHandle | null>(null);
   const [nearSeat, setNearSeat] = useState<SeatAnchor | null>(null);
   const [seated, setSeated] = useState(false);
+  const [nearbyNpc, setNearbyNpc] = useState<NearbyNpcState | null>(null);
+  const [menuNpc, setMenuNpc] = useState<NearbyNpcState | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [menuBusyId, setMenuBusyId] = useState<string | null>(null);
   const handleNearSeat = useCallback((seat: SeatAnchor | null) => setNearSeat(seat), []);
   const handleSeated = useCallback((next: boolean) => setSeated(next), []);
+  const handleNearbyNpc = useCallback((npc: NearbyNpcState | null) => setNearbyNpc(npc), []);
   const toggleSeat = useCallback(() => canvasRef.current?.toggleSeat(), []);
+  const interact = useCallback(() => canvasRef.current?.interact(), []);
+  const handleNpcAction = useCallback((npc: NearbyNpcState) => {
+    setMenuNpc((current) => (current?.id === npc.id ? null : npc));
+  }, []);
 
   const [hudMenuOpen, setHudMenuOpen] = useState(false);
   const [rotateDismissed, setRotateDismissed] = useState(false);
@@ -73,6 +93,33 @@ export function RoomPage() {
   const lastFlushRef = useRef(0);
   const xpRef = useRef(profile?.xp ?? 0);
   const profileId = profile?.id ?? '';
+
+  useEffect(() => {
+    if (!menuNpc) {
+      setMenuPos(null);
+      return;
+    }
+    let frame = 0;
+    const tick = () => {
+      const pos = canvasRef.current?.getNpcScreenPosition(menuNpc.id);
+      if (pos) setMenuPos(pos);
+      frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [menuNpc]);
+
+  useEffect(() => {
+    if (menuNpc && !nearbyNpc) {
+      setMenuNpc(null);
+    }
+  }, [menuNpc, nearbyNpc]);
+
+  const handleMenuBuy = useCallback(async (itemId: string) => {
+    // Wired in Task 8 (money-priced unlock purchases).
+    void itemId;
+    showToast('Menu purchases will be ready after shop updates.', 'info');
+  }, []);
 
   useEffect(() => {
     elapsedRef.current = elapsedSeconds;
@@ -276,44 +323,77 @@ export function RoomPage() {
             connection={connection}
             onNearSeatChange={handleNearSeat}
             onSeatedChange={handleSeated}
+            onNearbyNpcChange={handleNearbyNpc}
+            onNpcAction={handleNpcAction}
             fullscreen
             phoneViewport
             joystickSize={140}
           />
+
+          {menuNpc && menuPos ? (
+            <NpcMenuBubble
+              open
+              npcName={menuNpc.name}
+              items={NPC_MENU_ITEMS}
+              ownedItems={profile.owned_items}
+              money={profile.money}
+              x={menuPos.x}
+              y={menuPos.y}
+              busyId={menuBusyId}
+              onClose={() => setMenuNpc(null)}
+              onBuy={(id) => void handleMenuBuy(id)}
+            />
+          ) : null}
 
           <div className="pointer-events-auto absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] right-3 z-20 flex flex-col items-end gap-2">
             <span
               className={`rounded-full px-3 py-1 text-[10px] font-semibold shadow-card backdrop-blur transition-opacity ${
                 seated
                   ? 'bg-lavender text-charcoal'
-                  : nearSeat
-                    ? 'bg-ivory text-charcoal'
-                    : 'pointer-events-none bg-charcoal/70 text-ivory/60'
+                  : nearbyNpc
+                    ? 'bg-butter text-charcoal'
+                    : nearSeat
+                      ? 'bg-ivory text-charcoal'
+                      : 'pointer-events-none bg-charcoal/70 text-ivory/60'
               }`}
             >
               {seated
                 ? 'Seated'
-                : nearSeat
-                  ? `Chair nearby · ${nearSeat.propName.replace('-', ' ')}`
-                  : 'Walk to a chair'}
+                : nearbyNpc
+                  ? `${nearbyNpc.name} nearby`
+                  : nearSeat
+                    ? `Chair nearby · ${nearSeat.propName.replace('-', ' ')}`
+                    : 'Walk to a chair or cook'}
             </span>
 
-            <button
-              type="button"
-              onClick={toggleSeat}
-              disabled={!seated && !nearSeat}
-              className={`flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-bold shadow-card transition-transform active:scale-95 ${
-                seated
-                  ? 'bg-lavender text-charcoal'
-                  : nearSeat
-                    ? 'bg-ivory text-charcoal ring-4 ring-lavender/60'
-                    : 'bg-ivory/20 text-ivory/50'
-              }`}
-              aria-label={seated ? 'Stand up' : nearSeat ? 'Sit on this chair' : 'No chair in reach'}
-            >
-              <Armchair className="h-6 w-6" />
-              {seated ? 'Stand' : 'Sit'}
-            </button>
+            {nearbyNpc && !seated ? (
+              <button
+                type="button"
+                onClick={interact}
+                className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-full bg-butter text-[10px] font-bold text-charcoal shadow-card ring-4 ring-butter/50 transition-transform active:scale-95"
+                aria-label={`Talk to ${nearbyNpc.name}`}
+              >
+                <MessageCircle className="h-6 w-6" />
+                Menu
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={toggleSeat}
+                disabled={!seated && !nearSeat}
+                className={`flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-bold shadow-card transition-transform active:scale-95 ${
+                  seated
+                    ? 'bg-lavender text-charcoal'
+                    : nearSeat
+                      ? 'bg-ivory text-charcoal ring-4 ring-lavender/60'
+                      : 'bg-ivory/20 text-ivory/50'
+                }`}
+                aria-label={seated ? 'Stand up' : nearSeat ? 'Sit on this chair' : 'No chair in reach'}
+              >
+                <Armchair className="h-6 w-6" />
+                {seated ? 'Stand' : 'Sit'}
+              </button>
+            )}
 
             <RoomChatDrawer
               messages={connection.messages}
@@ -447,10 +527,36 @@ export function RoomPage() {
           connection={connection}
           onNearSeatChange={handleNearSeat}
           onSeatedChange={handleSeated}
+          onNearbyNpcChange={handleNearbyNpc}
+          onNpcAction={handleNpcAction}
           className="h-[60svh] min-h-[260px] w-full sm:h-[68svh]"
         />
 
+        {menuNpc && menuPos ? (
+          <NpcMenuBubble
+            open
+            npcName={menuNpc.name}
+            items={NPC_MENU_ITEMS}
+            ownedItems={profile.owned_items}
+            money={profile.money}
+            x={menuPos.x}
+            y={menuPos.y}
+            busyId={menuBusyId}
+            onClose={() => setMenuNpc(null)}
+            onBuy={(id) => void handleMenuBuy(id)}
+          />
+        ) : null}
+
         <SeatPromptBadge seat={nearSeat} onPress={toggleSeat} />
+        {nearbyNpc && !seated ? (
+          <button
+            type="button"
+            onClick={interact}
+            className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-butter px-4 py-2 text-xs font-semibold text-charcoal shadow-card backdrop-blur transition-colors active:scale-95"
+          >
+            <MessageCircle className="h-4 w-4" /> Talk to {nearbyNpc.name} (E)
+          </button>
+        ) : null}
 
         {seated && isTouchDevice ? (
           <button
@@ -466,10 +572,10 @@ export function RoomPage() {
           <AmbientMixer />
         </div>
 
-        {isTouchDevice && !seated && !nearSeat ? (
+        {isTouchDevice && !seated && !nearSeat && !nearbyNpc ? (
           <div className="pointer-events-none absolute bottom-40 left-1/2 z-20 -translate-x-1/2 sm:hidden">
             <span className="rounded-full bg-charcoal/70 px-3 py-1.5 text-[11px] font-semibold text-ivory backdrop-blur">
-              Walk up to a chair to sit
+              Walk up to a chair or cook
             </span>
           </div>
         ) : null}

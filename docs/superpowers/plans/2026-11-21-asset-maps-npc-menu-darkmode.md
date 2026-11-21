@@ -223,24 +223,24 @@
 - Produces: `ROOM_DEFINITIONS` includes enriched `public-cafe`, new `public-bar`, new `public-restaurant` with custom props/entities/seats/spawns/collision.
 - Consumes: Task 5 custom asset/entity support.
 
-- [ ] **Step 1: Select approved FoodDrink assets per room**
+- [x] **Step 1: Select approved FoodDrink assets per room**
   - Choose specific files from copied Bar/Cafe/Restaurant/Architecture sets for layout coherence and navigation clearance; record chosen filenames in config comments if helpful.
 
-- [ ] **Step 2: Define room layouts**
+- [x] **Step 2: Define room layouts**
   - Enrich Café with custom decor props and Cook NPC near counter.
   - Create Bar layout (counter/seating/decor/walls-floor treatment as supported) + Cook NPC.
   - Create Restaurant layout + Cook NPC.
   - Ensure spawns/seats/collision are playable.
 
-- [ ] **Step 3: Wire dashboard/public room UI**
+- [x] **Step 3: Wire dashboard/public room UI**
   - Add icons/tints/names for new public rooms; ensure `listRooms`/public IDs align (`public-cafe`, `public-bar`, `public-restaurant`).
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
   - Run: `npm run typecheck && npm run build`
   - Manual smoke (if dev server used): navigate to each public room, confirm render/no console crash.
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add src/config/rooms.config.ts src/components/dashboard src/pages/DashboardPage.tsx src/services/roomService.ts`
   - `git commit -m "feat(rooms): add bar and restaurant and enrich cafe with approved assets"`
 
@@ -257,21 +257,21 @@
 - Produces: near-NPC detection + interact prompt; open/close bubble menu anchored to cook NPC screen position.
 - Consumes: NPC entities from room definition and Task 8 catalog/purchase handlers (can stub UI with disabled buy until Task 8 if necessary, but prefer end-to-end).
 
-- [ ] **Step 1: Detect nearby interactable NPC**
+- [x] **Step 1: Detect nearby interactable NPC**
   - Compute distance from player to NPC entities; expose active NPC and prompt state to RoomPage.
 
-- [ ] **Step 2: Implement menu bubble component**
+- [x] **Step 2: Implement menu bubble component**
   - Render speech-bubble styled panel with pointer/tail feel, item grid/list, icon, name, money price, owned/buy state, close button; position near NPC using provided screen coords.
 
-- [ ] **Step 3: Wire interaction controls**
+- [x] **Step 3: Wire interaction controls**
   - Desktop: `E` opens/closes when near NPC (and still handles seats correctly with priority rules defined clearly).
   - Mobile: add/tap interact control when near NPC/menu context (reuse seat button area logic carefully).
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
   - Run: `npm run typecheck && npm run build`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add src/components/room src/pages/RoomPage.tsx src/components/room/GameCanvas.tsx src/engine/core/InputController.ts`
   - `git commit -m "feat(room): add cook NPC interaction and speech-bubble menu UI"`
 
